@@ -186,7 +186,7 @@
     time_scale = 1.0e-6
   [../]
   [./ElasticityTensor]
-    type = ComputePolycrystalElasticityTensorAdd
+    type = ComputePolycrystalElasticityTensor
     grain_tracker = grain_tracker
     outputs = exodus
   [../]
@@ -207,7 +207,7 @@
     file_name = test.tex
   [../]
   [./grain_tracker]
-    type = GrainTrackerElasticityAdd
+    type = GrainTrackerElasticity
     connecting_threshold = 0.05
     compute_var_to_feature_map = true
     flood_entity_type = elemental
@@ -251,7 +251,7 @@
   nl_rel_tol = 1e-9
 
   start_time = 0.0
-  num_steps = 30
+  num_steps = 3
   dt = 0.2
 
   [./Adaptivity]

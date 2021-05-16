@@ -32,7 +32,7 @@ protected:
   Real _pressure_scale;
 
   /// Grain tracker object
-  const GrainDataTrackerAdd<RankFourTensor,RankTwoTensor> & _grain_tracker;
+  const GrainDataTrackerAdd<RankFourTensor,RealVectorValue> & _grain_tracker;
 
   /// Number of order parameters
   const unsigned int _op_num;
@@ -44,7 +44,7 @@ protected:
   std::vector<MaterialProperty<RankFourTensor> *> _D_elastic_tensor;
 
   /// Crystal Rotation Matrix
-  MaterialProperty<RankTwoTensor> & _crysrot;
+  MaterialProperty<RealVectorValue> & _crysrot;
 
   /// Conversion factor from J to eV
   const Real _JtoeV;

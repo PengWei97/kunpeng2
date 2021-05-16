@@ -32,11 +32,11 @@ ComputePolycrystalElasticityTensorAdd::ComputePolycrystalElasticityTensorAdd(
   : ComputeElasticityTensorBase(parameters),
     _length_scale(getParam<Real>("length_scale")),
     _pressure_scale(getParam<Real>("pressure_scale")),
-    _grain_tracker(getUserObject<GrainDataTrackerAdd<RankFourTensor,RankTwoTensor>>("grain_tracker")),
+    _grain_tracker(getUserObject<GrainDataTrackerAdd<RankFourTensor,RealVectorValue>>("grain_tracker")),
     _op_num(coupledComponents("v")),
     _vals(coupledValues("v")),
     _D_elastic_tensor(_op_num),
-    _crysrot(declareProperty<RankTwoTensor>("crysrot")),
+    _crysrot(declareProperty<RealVectorValue>("crysrot")),
     _JtoeV(6.24150974e18)
 {
   // Loop over variables (ops)

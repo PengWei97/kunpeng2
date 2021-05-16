@@ -31,7 +31,7 @@ GrainTrackerElasticityAdd::validParams() // validParams的定义
 }
 
 GrainTrackerElasticityAdd::GrainTrackerElasticityAdd(const InputParameters & parameters) // 构造函数定义
-  : GrainDataTrackerAdd<RankFourTensor,RankTwoTensor>(parameters), // 从基类中继承的变量
+  : GrainDataTrackerAdd<RankFourTensor,RealVectorValue>(parameters), // 从基类中继承的变量
     _random_rotations(getParam<bool>("random_rotations")),
     _C_ijkl(getParam<std::vector<Real>>("C_ijkl"),
             getParam<MooseEnum>("fill_method").getEnum<RankFourTensor::FillMethod>()),
@@ -60,7 +60,7 @@ GrainTrackerElasticityAdd::newGrainElasticity(unsigned int new_grain_id) // 对�
   return C_ijkl;
 }
 
-RankTwoTensor
+RealVectorValue
 GrainTrackerElasticityAdd::newGrainRotation(unsigned int new_grain_id) // 对象定义
 {
   EulerAngles angles;
@@ -77,9 +77,9 @@ GrainTrackerElasticityAdd::newGrainRotation(unsigned int new_grain_id) // 对象
 
   // // RankFourTensor C_ijkl = _C_ijkl;
   // // C_ijkl.rotate(RotationTensor(RealVectorValue(angles)));
-  // RealVectorValue crysrot = RealVectorValue(angles);
+  RealVectorValue crysrot = RealVectorValue(angles);
 
-  RankTwoTensor crysrot = RotationTensor(RealVectorValue(angles));
+  // RankTwoTensor crysrot = RotationTensor(RealVectorValue(angles));
 
   return crysrot;
 }

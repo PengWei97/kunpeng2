@@ -11,7 +11,7 @@
 
 #include "GrainDataTrackerAdd.h"
 #include "RankFourTensor.h"
-#include "RankTwoTensor.h"
+// #include "RankTwoTensor.h"
 
 // #include "RealVectorValue.h"
 
@@ -20,7 +20,7 @@ class EulerAngleProvider;
 /**
  * Manage a list of elasticity tensors for the grains
  */
-class GrainTrackerElasticityAdd : public GrainDataTrackerAdd<RankFourTensor,RankTwoTensor>
+class GrainTrackerElasticityAdd : public GrainDataTrackerAdd<RankFourTensor,RealVectorValue>
 {
 public:
   static InputParameters validParams(); // 变量声明
@@ -30,7 +30,7 @@ public:
 protected:
   RankFourTensor newGrainElasticity(unsigned int new_grain_id);
 
-  RankTwoTensor newGrainRotation(unsigned int new_grain_id);
+  RealVectorValue newGrainRotation(unsigned int new_grain_id);
 
   /// generate random rotations when the Euler Angle provider runs out of data (otherwise error out)
   const bool _random_rotations;

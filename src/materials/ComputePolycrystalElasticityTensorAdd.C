@@ -36,6 +36,7 @@ ComputePolycrystalElasticityTensorAdd::ComputePolycrystalElasticityTensorAdd(
     _op_num(coupledComponents("v")),
     _vals(coupledValues("v")),
     _D_elastic_tensor(_op_num),
+    _crysrot(declareProperty<RankTwoTensor>("crysrot")),
     _JtoeV(6.24150974e18)
 {
   // Loop over variables (ops)
@@ -55,6 +56,7 @@ ComputePolycrystalElasticityTensorAdd::computeQpElasticityTensor()
 
   // Calculate elasticity tensor
   _elasticity_tensor[_qp].zero();
+  _crysrot[_qp].zero();
   Real sum_h = 0.0;
   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
   {
@@ -67,12 +69,14 @@ ComputePolycrystalElasticityTensorAdd::computeQpElasticityTensor()
 
     // Sum all rotated elasticity tensors
     _elasticity_tensor[_qp] += _grain_tracker.getDataElasticity(grain_id) * h;
+    _crysrot[_qp] += _grain_tracker.getDataRotation(grain_id) * h;
     sum_h += h;
   }
 
   const Real tol = 1.0e-10;
   sum_h = std::max(sum_h, tol);
   _elasticity_tensor[_qp] /= sum_h;
+  _crysrot[_qp] /= sum_h;
 
   // Calculate elasticity tensor derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
   for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)

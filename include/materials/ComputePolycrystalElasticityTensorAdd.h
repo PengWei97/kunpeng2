@@ -43,6 +43,9 @@ protected:
   /// vector of elasticity tensor material properties
   std::vector<MaterialProperty<RankFourTensor> *> _D_elastic_tensor;
 
+  /// Crystal Rotation Matrix
+  MaterialProperty<RankTwoTensor> & _crysrot;
+
   /// Conversion factor from J to eV
   const Real _JtoeV;
 };

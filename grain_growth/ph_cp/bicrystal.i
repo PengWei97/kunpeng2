@@ -7,6 +7,8 @@
   ymax = 1000
   elem_type = QUAD4
   uniform_refine = 2
+  skip_partitioning=true
+
 []
 
 [GlobalParams]
@@ -22,6 +24,15 @@
   [./disp_y]
   [../]
 []
+
+[Functions]
+  [./tdisp]
+    type = ParsedFunction
+    value = if(t<=10.0,0.1*t,1)
+    value = 0
+  [../]
+[]
+
 
 [ICs]
   [./PolycrystalICs]
@@ -76,10 +87,11 @@
 [Kernels]
   [./PolycrystalKernel]
   [../]
-  [./PolycrystalElasticDrivingForce]
-  [../]
+  # [./PolycrystalElasticDrivingForce]
+  # [../]
   [./TensorMechanics]
     displacements = 'disp_x disp_y'
+    use_displaced_mesh = true
   [../]
 []
 
@@ -155,15 +167,16 @@
 
 [BCs]
   [./top_displacement]
-    type = DirichletBC
+    type = FunctionDirichletBC
     variable = disp_y
     boundary = top
-    value = -10.0
+    function = tdisp
   [../]
   [./x_anchor]
     type = DirichletBC
     variable = disp_x
-    boundary = 'left right'
+    # boundary = 'left right'
+    boundary = 'left'
     value = 0.0
   [../]
   [./y_anchor]
@@ -186,17 +199,29 @@
     time_scale = 1.0e-6
   [../]
   [./ElasticityTensor]
-    type = ComputePolycrystalElasticityTensor
+    type = ComputeElasticityTensorCPAdd
+    C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.754e5 0.754e5 0.754e5'
+    fill_method = symmetric9
     grain_tracker = grain_tracker
+
+    # outputs = exodus
   [../]
   [./strain]
-    type = ComputeSmallStrain
+    type = ComputeFiniteStrain
     block = 0
     displacements = 'disp_x disp_y'
   [../]
-  [./stress]
-    type = ComputeLinearElasticStress
+  [./crysp]
+    type = FiniteStrainCrystalPlasticity
     block = 0
+    gtol = 1e-2
+    slip_sys_file_name = input_slip_sys.txt
+    nss = 12
+    num_slip_sys_flowrate_props = 2 #Number of properties in a slip system
+    flowprops = '1 4 0.001 0.1 5 8 0.001 0.1 9 12 0.001 0.1'
+    hprops = '1.0 541.5 60.8 109.8 2.5'
+    gprops = '1 4 60.8 5 8 60.8 9 12 60.8'
+    tan_mod_type = exact
   [../]
 []
 
@@ -206,7 +231,7 @@
     file_name = test.tex
   [../]
   [./grain_tracker]
-    type = GrainTrackerElasticity
+    type = GrainTrackerElasticityAdd
     connecting_threshold = 0.05
     compute_var_to_feature_map = true
     flood_entity_type = elemental
@@ -216,7 +241,7 @@
     fill_method = symmetric9
     C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
 
-    outputs = none
+    # outputs = none
   [../]
 []
 
@@ -250,7 +275,7 @@
   nl_rel_tol = 1e-9
 
   start_time = 0.0
-  num_steps = 30
+  num_steps = 100
   dt = 0.2
 
   [./Adaptivity]

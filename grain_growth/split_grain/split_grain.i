@@ -2,6 +2,7 @@
   [ebsd_mesh]
     type = EBSDMeshGenerator
     filename = EBSD_split_grain.txt
+    # Enter ebsd related data
   []
 []
 
@@ -157,20 +158,18 @@
 [Executioner]
   type = Transient
   scheme = bdf2
-  # Second order backward differentiation formula time integration scheme.
-
   solve_type = PJFNK
 
   petsc_options_iname = '-pc_type -pc_hypre_type -pc_hypre_boomeramg_strong_threshold'
   petsc_options_value = 'hypre    boomeramg      0.7'
 
-  l_tol = 1.0e-4 # Linear Tolerance
-  l_max_its = 20 # Max Linear Iterations
-  nl_max_its = 20 # Max Nonlinear Iterations
-  nl_rel_tol = 1.0e-8 # Nonlinear Relative Tolerance
-  nl_abs_tol = 1.0e-10 # Nonlinear Absolute Tolerance
+  l_tol = 1.0e-4
+  l_max_its = 20
+  nl_max_its = 20
+  nl_rel_tol = 1.0e-8
+
   start_time = 0.0
-  num_steps = 2
+  num_steps = 20
 
   [TimeStepper]
     type = IterationAdaptiveDT

@@ -1,12 +1,12 @@
 [Mesh]
   type = GeneratedMesh
   dim = 2
-  nx = 10
-  ny = 3
-  xmax = 1000
-  ymax = 1000
+  nx = 20
+  ny = 6
+  xmax = 0.020
+  ymax = 0.020
   elem_type = QUAD4
-  uniform_refine = 2
+  uniform_refine = 3
 []
 
 [GlobalParams]
@@ -28,8 +28,8 @@
     [./BicrystalBoundingBoxIC]
       x1 = 0
       y1 = 0
-      x2 = 500
-      y2 = 1000
+      x2 = 0.010
+      y2 = 0.020
     [../]
   [../]
 []
@@ -158,7 +158,7 @@
     type = DirichletBC
     variable = disp_y
     boundary = top
-    value = -10.0
+    value = -0.0002
   [../]
   [./x_anchor]
     type = DirichletBC
@@ -179,15 +179,17 @@
     type = GBEvolution
     block = 0
     T = 500 # K
-    wGB = 75 # nm
+    wGB = 7.5e-5 # nm
     GBmob0 = 2.5e-6 #m^4/(Js) from Schoenfelder 1997
     Q = 0.23 #Migration energy in eV
     GBenergy = 0.708 #GB energy in J/m^2
-    time_scale = 1.0e-6
+    time_scale = 1.0 # s
+    length_scale = 1.0e-03 # mm
   [../]
   [./ElasticityTensor]
     type = ComputePolycrystalElasticityTensor
     grain_tracker = grain_tracker
+    # outputs = exodus
   [../]
   [./strain]
     type = ComputeSmallStrain
@@ -250,14 +252,20 @@
   nl_rel_tol = 1e-9
 
   start_time = 0.0
-  num_steps = 30
-  dt = 0.2
+  end_time = 30.0
 
+  [./TimeStepper]
+    type = IterationAdaptiveDT
+    dt = 1.5
+    growth_factor = 1.2
+    cutback_factor = 0.8
+    optimal_iterations = 8
+  [../]
   [./Adaptivity]
-   initial_adaptivity = 2
-    refine_fraction = 0.7
-    coarsen_fraction = 0.1
-    max_h_level = 2
+    initial_adaptivity = 2
+    refine_fraction = 0.8
+    coarsen_fraction = 0.05
+    max_h_level = 3
   [../]
 []
 

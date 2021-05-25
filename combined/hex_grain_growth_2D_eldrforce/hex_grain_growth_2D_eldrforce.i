@@ -1,16 +1,18 @@
 [Mesh]
   type = GeneratedMesh
   dim = 2
-  nx = 10
-  ny = 3
+  nx = 20
+  ny = 17
+  nz = 0
   xmax = 1000
-  ymax = 1000
+  ymax = 866
+  zmax = 0
   elem_type = QUAD4
   uniform_refine = 2
 []
 
 [GlobalParams]
-  op_num = 2
+  op_num = 8
   var_name_base = gr
 []
 
@@ -18,18 +20,44 @@
   [./PolycrystalVariables]
   [../]
   [./disp_x]
+    order = FIRST
+    family = LAGRANGE
   [../]
   [./disp_y]
+    order = FIRST
+    family = LAGRANGE
+  [../]
+[]
+
+[UserObjects]
+  [./hex_ic]
+    type = PolycrystalHex
+    coloring_algorithm = bt
+    grain_num = 36
+    x_offset = 0.0
+    output_adjacency_matrix = true
+  [../]
+  [./euler_angle_file]
+    type = EulerAngleFileReader
+    file_name = grn_36_test2_2D.tex
+  [../]
+  [./grain_tracker]
+    type = GrainTrackerElasticity
+    threshold = 0.2
+    compute_var_to_feature_map = true
+    execute_on = 'initial timestep_begin'
+    flood_entity_type = ELEMENTAL
+
+    fill_method = symmetric9
+    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
+    euler_angle_provider = euler_angle_file
   [../]
 []
 
 [ICs]
   [./PolycrystalICs]
-    [./BicrystalBoundingBoxIC]
-      x1 = 0
-      y1 = 0
-      x2 = 500
-      y2 = 1000
+    [./PolycrystalColoringIC]
+      polycrystal_ic_uo = hex_ic
     [../]
   [../]
 []
@@ -63,7 +91,7 @@
     order = CONSTANT
     family = MONOMIAL
   [../]
-  [./active_bounds_elemental]
+  [./vonmises_stress]
     order = CONSTANT
     family = MONOMIAL
   [../]
@@ -84,10 +112,10 @@
 []
 
 [AuxKernels]
-  [./bnds_aux]
+  [./BndsCalc]
     type = BndsCalcAux
     variable = bnds
-    execute_on = timestep_end
+    execute_on = 'initial timestep_end'
   [../]
   [./elastic_strain11]
     type = RankTwoAux
@@ -116,15 +144,15 @@
   [./unique_grains]
     type = FeatureFloodCountAux
     variable = unique_grains
+    execute_on = timestep_end
     flood_counter = grain_tracker
-    execute_on = 'initial timestep_begin'
     field_display = UNIQUE_REGION
   [../]
   [./var_indices]
     type = FeatureFloodCountAux
     variable = var_indices
+    execute_on = timestep_end
     flood_counter = grain_tracker
-    execute_on = 'initial timestep_begin'
     field_display = VARIABLE_COLORING
   [../]
   [./C1111]
@@ -137,12 +165,11 @@
     index_i = 0
     execute_on = timestep_end
   [../]
-  [./active_bounds_elemental]
-    type = FeatureFloodCountAux
-    variable = active_bounds_elemental
-    field_display = ACTIVE_BOUNDS
-    execute_on = 'initial timestep_begin'
-    flood_counter = grain_tracker
+  [./vonmises_stress]
+    type = RankTwoScalarAux
+    variable = vonmises_stress
+    rank_two_tensor = stress
+    scalar_type = VonMisesStress
   [../]
   [./euler_angle]
     type = OutputEulerAngles
@@ -154,11 +181,17 @@
 []
 
 [BCs]
+  [./Periodic]
+    [./All]
+      auto_direction = 'x y'
+      variable = 'gr0 gr1 gr2 gr3 gr4 gr5 gr6 gr7'
+    [../]
+  [../]
   [./top_displacement]
     type = DirichletBC
     variable = disp_y
     boundary = top
-    value = -10.0
+    value = -50.0
   [../]
   [./x_anchor]
     type = DirichletBC
@@ -179,14 +212,14 @@
     type = GBEvolution
     block = 0
     T = 500 # K
-    wGB = 75 # nm
-    GBmob0 = 2.5e-6 #m^4/(Js) from Schoenfelder 1997
-    Q = 0.23 #Migration energy in eV
-    GBenergy = 0.708 #GB energy in J/m^2
-    time_scale = 1.0e-6
+    wGB = 15 # nm
+    GBmob0 = 2.5e-6 # m^4/(Js) from Schoenfelder 1997
+    Q = 0.23 # Migration energy in eV
+    GBenergy = 0.708 # GB energy in J/m^2
   [../]
   [./ElasticityTensor]
     type = ComputePolycrystalElasticityTensor
+    block = 0
     grain_tracker = grain_tracker
   [../]
   [./strain]
@@ -200,68 +233,58 @@
   [../]
 []
 
-[UserObjects]
-  [./euler_angle_file]
-    type = EulerAngleFileReader
-    file_name = test.tex
-  [../]
-  [./grain_tracker]
-    type = GrainTrackerElasticity
-    connecting_threshold = 0.05
-    compute_var_to_feature_map = true
-    flood_entity_type = elemental
-    execute_on = 'initial timestep_begin'
-
-    euler_angle_provider = euler_angle_file
-    fill_method = symmetric9
-    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
-
-    outputs = none
-  [../]
-[]
-
 [Postprocessors]
+  [./dofs]
+    type = NumDOFs
+  [../]
   [./dt]
     type = TimestepSize
   [../]
-  [./gr0_area]
-    type = ElementIntegralVariablePostprocessor
-    variable = gr0
+  [./run_time]
+    type = PerfGraphData
+    section_name = "Root"
+    data_type = total
+  [../]
+  [./bnd_length]
+    type = GrainBoundaryArea
   [../]
 []
 
 [Preconditioning]
   [./SMP]
-   type = SMP
-   coupled_groups = 'gr0,gr1 disp_x,disp_y'
+    type = SMP
+    off_diag_row = 'disp_x disp_y'
+    off_diag_column = 'disp_y disp_x'
   [../]
 []
 
 [Executioner]
   type = Transient
-
-  solve_type = 'PJFNK'
+  scheme = bdf2
+  solve_type = PJFNK
   petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart -pc_hypre_boomeramg_strong_threshold'
   petsc_options_value = 'hypre boomeramg 31 0.7'
-
+  l_tol = 1.0e-4
   l_max_its = 30
-  l_tol = 1e-4
-  nl_max_its = 30
-  nl_rel_tol = 1e-9
-
+  nl_max_its = 40
+  nl_rel_tol = 1.0e-7
   start_time = 0.0
-  num_steps = 30
-  dt = 0.2
-
+  num_steps = 50
+  [./TimeStepper]
+    type = IterationAdaptiveDT
+    dt = 1.5
+    growth_factor = 1.2
+    cutback_factor = 0.8
+    optimal_iterations = 8
+  [../]
   [./Adaptivity]
-   initial_adaptivity = 2
-    refine_fraction = 0.7
-    coarsen_fraction = 0.1
-    max_h_level = 2
+    initial_adaptivity = 2
+    refine_fraction = 0.8
+    coarsen_fraction = 0.05
+    max_h_level = 3
   [../]
 []
 
 [Outputs]
-  execute_on = 'timestep_end'
   exodus = true
 []

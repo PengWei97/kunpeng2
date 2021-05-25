@@ -3,8 +3,8 @@
   dim = 2
   nx = 10
   ny = 3
-  xmax = 1000
-  ymax = 1000
+  xmax = 200
+  ymax = 200
   elem_type = QUAD4
   uniform_refine = 2
 []
@@ -28,8 +28,8 @@
     [./BicrystalBoundingBoxIC]
       x1 = 0
       y1 = 0
-      x2 = 500
-      y2 = 1000
+      x2 = 100
+      y2 = 200
     [../]
   [../]
 []
@@ -158,7 +158,7 @@
     type = DirichletBC
     variable = disp_y
     boundary = top
-    value = -10.0
+    value = -2.0
   [../]
   [./x_anchor]
     type = DirichletBC
@@ -178,11 +178,14 @@
   [./Copper]
     type = GBEvolution
     block = 0
-    T = 500 # K
-    wGB = 75 # nm
-    GBmob0 = 2.5e-6 #m^4/(Js) from Schoenfelder 1997
-    Q = 0.23 #Migration energy in eV
-    GBenergy = 0.708 #GB energy in J/m^2
+    T = 600
+    wGB = 0.6 # um
+    GBmob0 = 2.5e-6 # m^4/(Js) from Schoenfelder 1997
+    Q = 0.23 # Migration energy in eV
+    GBenergy = 0.708 # GB energy in J/m^2
+    molar_volume = 7.11e-6 # Molar volume in m^3/mol
+
+    length_scale = 1.0e-6
     time_scale = 1.0e-6
   [../]
   [./ElasticityTensor]
@@ -254,7 +257,7 @@
   dt = 0.2
 
   [./Adaptivity]
-   initial_adaptivity = 2
+    initial_adaptivity = 2
     refine_fraction = 0.7
     coarsen_fraction = 0.1
     max_h_level = 2

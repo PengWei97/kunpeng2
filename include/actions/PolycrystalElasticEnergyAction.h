@@ -27,7 +27,7 @@ public:
 
   PolycrystalElasticEnergyAction(const InputParameters & params);
 
-  virtual void act();
+  virtual void act() override;
 
 private:
   /// Number of order parameters used in the model

@@ -76,6 +76,7 @@
 [Kernels]
   [./PolycrystalKernel]
   [../]
+  # [./PolycrystalElasticDrivingForce]
   [./PolycrystalElasticEnergy]
     # var_name_base = gr
   [../]
@@ -83,6 +84,8 @@
     displacements = 'disp_x disp_y'
   [../]
 []
+
+
 
 [AuxKernels]
   # [./bnds_aux]

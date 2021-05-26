@@ -12,7 +12,7 @@
 #include "FEProblem.h"
 #include "Conversion.h"
 
-registerMooseAction("PhaseFieldApp", PolycrystalElasticEnergyAction, "add_kernel");
+registerMooseAction("kunpengApp", PolycrystalElasticEnergyAction, "add_kernel");
 
 InputParameters
 PolycrystalElasticEnergyAction::validParams()
@@ -44,10 +44,10 @@ PolycrystalElasticEnergyAction::PolycrystalElasticEnergyAction(
 void
 PolycrystalElasticEnergyAction::act()
 {
-#ifdef DEBUG
-  Moose::err << "Inside the PolycrystalElasticEnergyAction Object\n";
-  Moose::err << "var name base:" << _var_name_base;
-#endif
+// #ifdef DEBUG
+//   Moose::err << "Inside the PolycrystalElasticEnergyAction Object\n";
+//   Moose::err << "var name base:" << _var_name_base;
+// #endif
 
   for (unsigned int op = 0; op < _op_num; ++op)
   {

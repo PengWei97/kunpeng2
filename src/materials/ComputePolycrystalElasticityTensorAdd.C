@@ -37,6 +37,7 @@ ComputePolycrystalElasticityTensorAdd::ComputePolycrystalElasticityTensorAdd(
     _vals(coupledValues("v")),
     _D_elastic_tensor(_op_num),
     _crysrot(declareProperty<RankTwoTensor>("crysrot")),
+
     _JtoeV(6.24150974e18)
 {
   // Loop over variables (ops)

@@ -10,8 +10,6 @@
 #pragma once
 
 #include "Action.h"
-// #include "MooseObjectAction.h"
-
 #include "DerivativeMaterialPropertyNameInterface.h"
 
 // Forward Declarations
@@ -20,14 +18,14 @@
  * Action that adds the elastic driving force for each order parameter
  */
 class PolycrystalElasticEnergyAction : public Action,
-                                       public DerivativeMaterialPropertyNameInterface
+                                             public DerivativeMaterialPropertyNameInterface
 {
 public:
-  static InputParameters validParams(); 
+  static InputParameters validParams();
 
   PolycrystalElasticEnergyAction(const InputParameters & params);
 
-  virtual void act() override;
+  virtual void act();
 
 private:
   /// Number of order parameters used in the model
@@ -37,4 +35,5 @@ private:
   std::string _var_name_base;
   const std::string _base_name;
   std::string _elasticity_tensor_name;
+  std::string _elasticity_energy_name;
 };

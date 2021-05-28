@@ -9,6 +9,7 @@
 
 #include "ComputeElasticityTensorCPAdd.h"
 #include "RotationTensor.h"
+#include "RankTwoTensor.h"
 
 registerMooseObject("TensorMechanicsApp", ComputeElasticityTensorCPAdd);
 
@@ -36,13 +37,18 @@ ComputeElasticityTensorCPAdd::ComputeElasticityTensorCPAdd(const InputParameters
     //                            ? &getUserObject<ElementPropertyReadFile>("read_prop_user_object")
     //                            : nullptr),
     // _Euler_angles_mat_prop(declareProperty<RealVectorValue>("Euler_angles")),
+    _elasticity_energy_name(_base_name + "elasticity_energy"),
     _length_scale(getParam<Real>("length_scale")),
     _pressure_scale(getParam<Real>("pressure_scale")),
     _grain_tracker(getUserObject<GrainDataTrackerAdd<RankFourTensor,RealVectorValue>>("grain_tracker")),
     _op_num(coupledComponents("v")),
     _vals(coupledValues("v")),
     _D_elastic_tensor(_op_num),
+    _D_elastic_energy(_op_num),
     _crysrot(declareProperty<RankTwoTensor>("crysrot")),
+    _elasticity_energy(declareProperty<Real>("elasticity_energy")),
+    _pk2(getMaterialPropertyByName<RankTwoTensor>("pk2")),
+    _lag_e(getMaterialPropertyByName<RankTwoTensor>("lage")),
     _JtoeV(6.24150974e18)
     // _R(_Euler_angles)
 {
@@ -60,34 +66,11 @@ ComputeElasticityTensorCPAdd::ComputeElasticityTensorCPAdd(const InputParameters
     // declare elasticity tensor derivative properties
     _D_elastic_tensor[op_index] = &declarePropertyDerivative<RankFourTensor>(
         _elasticity_tensor_name, getVar("v", op_index)->name());
+    _D_elastic_energy[op_index] = &declarePropertyDerivative<Real>(
+        _elasticity_energy_name, getVar("v", op_index)->name());
   }
 }
 
-// void
-// ComputeElasticityTensorCPAdd::assignEulerAngles()
-// {
-//   if (_read_prop_user_object)
-//   {
-//     _Euler_angles_mat_prop[_qp](0) = _read_prop_user_object->getData(_current_elem, 0);
-//     _Euler_angles_mat_prop[_qp](1) = _read_prop_user_object->getData(_current_elem, 1);
-//     _Euler_angles_mat_prop[_qp](2) = _read_prop_user_object->getData(_current_elem, 2);
-//   }
-//   else
-//     _Euler_angles_mat_prop[_qp] = _Euler_angles;
-// }
-
-// void
-// ComputeElasticityTensorCPAdd::computeQpElasticityTensor()
-// {
-//   // Properties assigned at the beginning of every call to material calculation
-//   assignEulerAngles();
-
-//   _R.update(_Euler_angles_mat_prop[_qp]);
-
-//   _crysrot[_qp] = _R.transpose();
-//   _elasticity_tensor[_qp] = _Cijkl;
-//   _elasticity_tensor[_qp].rotate(_crysrot[_qp]);
-// }
 
 void
 ComputeElasticityTensorCPAdd::computeQpElasticityTensor()
@@ -97,6 +80,7 @@ ComputeElasticityTensorCPAdd::computeQpElasticityTensor()
 
   // Calculate elasticity tensor
   _elasticity_tensor[_qp].zero();
+  _elasticity_energy[_qp] = 0.0;
   _crysrot[_qp].zero();
   Real sum_h = 0.0;
   
@@ -110,14 +94,16 @@ ComputeElasticityTensorCPAdd::computeQpElasticityTensor()
     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
 
     // Sum all rotated elasticity tensors
-    _elasticity_tensor[_qp] += _grain_tracker.getDataElasticity(grain_id) * h;
-    _crysrot[_qp] += RotationTensor(_grain_tracker.getDataRotation(grain_id)).transpose()* h;
+    _elasticity_tensor[_qp] += _grain_tracker.getDataElasticity(grain_id);
+    _elasticity_energy[_qp] += 0.5 * _pk2[_qp].doubleContraction(_lag_e[_qp])*h;
+    _crysrot[_qp] += RotationTensor(_grain_tracker.getDataRotation(grain_id)).transpose();
     sum_h += h;
   }
 
   const Real tol = 1.0e-10;
   sum_h = std::max(sum_h, tol);
   _elasticity_tensor[_qp] /= sum_h;
+  _elasticity_energy[_qp] /=sum_h;
   _crysrot[_qp] /= sum_h;
 
 
@@ -132,11 +118,20 @@ ComputeElasticityTensorCPAdd::computeQpElasticityTensor()
       continue;
 
     Real dhdopi = libMesh::pi * std::cos(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5)) / 2.0;
+
     RankFourTensor & C_deriv = (*_D_elastic_tensor[op_index])[_qp];
+    Real & EE_deriv = (*_D_elastic_energy[op_index])[_qp];
 
     C_deriv = (_grain_tracker.getDataElasticity(grain_id) - _elasticity_tensor[_qp]) * dhdopi / sum_h;
 
+    EE_deriv = (0.5 * _pk2[_qp].doubleContraction(_lag_e[_qp])/sum_h - _elasticity_energy[_qp]) * dhdopi;
+
     // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
     C_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
+
+    EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
   }
+
+
 }
+

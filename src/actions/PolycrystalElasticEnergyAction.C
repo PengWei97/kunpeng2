@@ -37,7 +37,8 @@ PolycrystalElasticEnergyAction::PolycrystalElasticEnergyAction(
     _op_num(getParam<unsigned int>("op_num")),
     _var_name_base(getParam<std::string>("var_name_base")),
     _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
-    _elasticity_tensor_name(_base_name + "elasticity_tensor")
+    _elasticity_tensor_name(_base_name + "elasticity_tensor"),
+    _elasticity_energy_name(_base_name + "elasticity_energy")
 {
 }
 
@@ -58,16 +59,20 @@ PolycrystalElasticEnergyAction::act()
     MaterialPropertyName D_stiff_name =
         derivativePropertyNameFirst(_elasticity_tensor_name, var_name);
 
+    MaterialPropertyName D_elastic_energy_name =
+        derivativePropertyNameFirst(_elasticity_energy_name, var_name);
+
     // Set name of kernel being created
-    std::string kernel_type = "ACGrGrElasticDrivingForce";
+    std::string kernel_type = "ACGrGrElasticEnergy";
 
     // Set the actual parameters for the kernel
     InputParameters poly_params = _factory.getValidParams(kernel_type);
     poly_params.set<NonlinearVariableName>("variable") = var_name;
     poly_params.set<MaterialPropertyName>("D_tensor_name") = D_stiff_name;
+    poly_params.set<MaterialPropertyName>("D_elastic_energy_name") = D_elastic_energy_name;
     poly_params.set<bool>("use_displaced_mesh") = getParam<bool>("use_displaced_mesh");
 
-    std::string kernel_name = "AC_ElasticDrivingForce_" + var_name;
+    std::string kernel_name = "AC_ElasticEnergy_" + var_name;
 
     // Create kernel
     _problem->addKernel(kernel_type, kernel_name, poly_params);

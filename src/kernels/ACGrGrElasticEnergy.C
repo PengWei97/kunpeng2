@@ -22,12 +22,16 @@ ACGrGrElasticEnergy::validParams()
   params.addClassDescription("Adds elastic energy contribution to the Allen-Cahn equation");
   params.addRequiredParam<MaterialPropertyName>(
       "D_tensor_name", "The elastic tensor derivative for the specific order parameter");
+  params.addRequiredParam<MaterialPropertyName>(
+      "D_elastic_energy_name", "The elastic energy derivative for the specific order parameter");
+      
   return params;
 }
 
 ACGrGrElasticEnergy::ACGrGrElasticEnergy(const InputParameters & parameters)
   : ACBulk<Real>(parameters),
     _D_elastic_tensor(getMaterialProperty<RankFourTensor>("D_tensor_name")),
+    _D_elastic_energy(getMaterialProperty<Real>("D_elastic_energy_name")),
     _elastic_strain(getMaterialPropertyByName<RankTwoTensor>("elastic_strain"))
 {
 }
@@ -44,8 +48,7 @@ ACGrGrElasticEnergy::computeDFDOP(PFFunctionType type)
   switch (type)
   {
     case Residual:
-      return 0.5 *
-             D_stress.doubleContraction(strain); // Compute the deformation energy driving force
+      return _D_elastic_energy[_qp]; // Compute the deformation energy driving force
 
     case Jacobian:
       return 0.0;

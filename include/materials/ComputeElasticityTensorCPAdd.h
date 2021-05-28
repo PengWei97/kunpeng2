@@ -28,7 +28,11 @@ public:
 protected:
   virtual void computeQpElasticityTensor() override;
 
+  // virtual void computeQpElasticityEnergy();
+
   // virtual void assignEulerAngles();
+
+  std::string _elasticity_energy_name;
   
   Real _length_scale;
   Real _pressure_scale;
@@ -41,6 +45,8 @@ protected:
 
   std::vector<MaterialProperty<RankFourTensor> *> _D_elastic_tensor;
 
+  std::vector<MaterialProperty<Real> *> _D_elastic_energy;
+
   /**
    * Element property read user object
    * Presently used to read Euler angles -  see test
@@ -50,10 +56,19 @@ protected:
   // MaterialProperty<RealVectorValue> & _Euler_angles_mat_prop;
 
   /// Crystal Rotation Matrix
+
   MaterialProperty<RankTwoTensor> & _crysrot;
+  MaterialProperty<Real> & _elasticity_energy;
+
+
+  const MaterialProperty<RankTwoTensor> & _pk2;
+  const MaterialProperty<RankTwoTensor> & _lag_e;
 
   /// Rotation matrix
   // RotationTensor _R;
   const Real _JtoeV;
   
 };
+
+
+

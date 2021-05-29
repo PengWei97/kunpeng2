@@ -37,4 +37,5 @@ private:
   std::string _var_name_base;
   const std::string _base_name;
   std::string _elasticity_tensor_name;
+  std::string _elasticity_energy_name;
 };

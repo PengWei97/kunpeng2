@@ -7,17 +7,21 @@
 //* Licensed under LGPL 2.1, please see LICENSE for details
 //* https://www.gnu.org/licenses/lgpl-2.1.html
 
-#include "ComputePolycrystalElasticityTensorAdd.h"
-#include "RotationTensor.h"
+#include "ComputerGrGrElasticEnergy.h"
+// #include "RotationTensor.h"
 
-registerMooseObject("PhaseFieldApp", ComputePolycrystalElasticityTensorAdd);
+registerMooseObject("kunpengApp", ComputerGrGrElasticEnergy);
 
 InputParameters
-ComputePolycrystalElasticityTensorAdd::validParams()
+ComputerGrGrElasticEnergy::validParams()
 {
-  InputParameters params = ComputeElasticityTensorBase::validParams();
+  InputParameters params = Material::validParams();
   params.addClassDescription(
-      "Compute an evolving elasticity tensor coupled to a grain growth phase field model.");
+      "Compute an evolving elasticity energy coupled to a grain growth phase field model.");
+  params.addParam<std::string>("base_name",
+                               "Optional parameter that allows the user to define "
+                               "multiple mechanics material systems on the same "
+                               "block, i.e. for multiple phases");
   params.addRequiredParam<UserObjectName>(
       "grain_tracker", "Name of GrainTracker user object that provides RankFourTensors");
   params.addParam<Real>("length_scale", 1.0e-9, "Length scale of the problem, in meters");
@@ -27,37 +31,39 @@ ComputePolycrystalElasticityTensorAdd::validParams()
   return params;
 }
 
-ComputePolycrystalElasticityTensorAdd::ComputePolycrystalElasticityTensorAdd(
+ComputerGrGrElasticEnergy::ComputerGrGrElasticEnergy(
     const InputParameters & parameters)
-  : ComputeElasticityTensorBase(parameters),
+  : DerivativeMaterialInterface<Material>(parameters),  
+    _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
+    _elasticity_energy_name(_base_name + "elasticity_energy"),
+    _pk2(getMaterialPropertyByName<RankTwoTensor>("pk2")),
+    _lag_e(getMaterialPropertyByName<RankTwoTensor>("lage")),
     _length_scale(getParam<Real>("length_scale")),
     _pressure_scale(getParam<Real>("pressure_scale")),
     _grain_tracker(getUserObject<GrainDataTrackerAdd<RankFourTensor,RealVectorValue>>("grain_tracker")),
     _op_num(coupledComponents("v")),
     _vals(coupledValues("v")),
-    _D_elastic_tensor(_op_num),
-    _crysrot(declareProperty<RankTwoTensor>("crysrot")),
-
+    _elasticity_energy(declareProperty<Real>("elasticity_energy")),
+    _D_elastic_energy(_op_num),
     _JtoeV(6.24150974e18)
 {
   // Loop over variables (ops)
   for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
   {
     // declare elasticity tensor derivative properties
-    _D_elastic_tensor[op_index] = &declarePropertyDerivative<RankFourTensor>(
-        _elasticity_tensor_name, getVar("v", op_index)->name());
+    _D_elastic_energy[op_index] = &declarePropertyDerivative<Real>(
+        _elasticity_energy_name, getVar("v", op_index)->name());
   }
 }
 
 void
-ComputePolycrystalElasticityTensorAdd::computeQpElasticityTensor()
+ComputerGrGrElasticEnergy::computerQpGrGrElasticityEnergy()
 {
   // Get list of active order parameters from grain tracker
   const auto & op_to_grains = _grain_tracker.getVarToFeatureVector(_current_elem->id());
 
   // Calculate elasticity tensor
-  _elasticity_tensor[_qp].zero();
-  _crysrot[_qp].zero();
+  _elasticity_energy[_qp] = 0;
   Real sum_h = 0.0;
   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
   {
@@ -68,21 +74,19 @@ ComputePolycrystalElasticityTensorAdd::computeQpElasticityTensor()
     // Interpolation factor for elasticity tensors
     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
 
-    // Sum all rotated elasticity tensors
-    _elasticity_tensor[_qp] += _grain_tracker.getDataElasticity(grain_id) * h;
-    _crysrot[_qp] += RotationTensor(_grain_tracker.getDataRotation(grain_id)).transpose()* h;
+    // Sum all elastic energy $ = $ 
+    _elasticity_energy[_qp] += 0.5 * _pk2[_qp].doubleContraction(_lag_e[_qp])*h;
     sum_h += h;
   }
 
   const Real tol = 1.0e-10;
   sum_h = std::max(sum_h, tol);
-  _elasticity_tensor[_qp] /= sum_h;
-  _crysrot[_qp] /= sum_h;
+  _elasticity_energy[_qp] /=sum_h; // phi^e
 
 
   // Calculate elasticity tensor derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
   for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
-    (*_D_elastic_tensor[op_index])[_qp].zero();
+    (*_D_elastic_energy[op_index])[_qp] = 0;
 
   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
   {
@@ -90,12 +94,14 @@ ComputePolycrystalElasticityTensorAdd::computeQpElasticityTensor()
     if (grain_id == FeatureFloodCount::invalid_id)
       continue;
 
+    // 
     Real dhdopi = libMesh::pi * std::cos(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5)) / 2.0;
-    RankFourTensor & C_deriv = (*_D_elastic_tensor[op_index])[_qp];
 
-    C_deriv = (_grain_tracker.getDataElasticity(grain_id) - _elasticity_tensor[_qp]) * dhdopi / sum_h;
+    Real & EE_deriv = (*_D_elastic_energy[op_index])[_qp];
+
+    EE_deriv = (0.5 * _pk2[_qp].doubleContraction(_lag_e[_qp])/sum_h - _elasticity_energy[_qp]) * dhdopi;
 
     // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
-    C_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
+    EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
   }
 }

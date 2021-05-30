@@ -20,14 +20,17 @@ ACGrGrElasticEnergy::validParams()
 {
   InputParameters params = ACBulk<Real>::validParams();
   params.addClassDescription("Adds elastic energy contribution to the Allen-Cahn equation");
+  // params.addRequiredParam<MaterialPropertyName>(
+      // "D_tensor_name", "The elastic tensor derivative for the specific order parameter");
   params.addRequiredParam<MaterialPropertyName>(
-      "D_tensor_name", "The elastic tensor derivative for the specific order parameter");
+      "D_tensor_energy_name", "The elastic tensor derivative for the specific order parameter");
   return params;
 }
 
 ACGrGrElasticEnergy::ACGrGrElasticEnergy(const InputParameters & parameters)
   : ACBulk<Real>(parameters),
-    _D_elastic_tensor(getMaterialProperty<RankFourTensor>("D_tensor_name")),
+    // _D_elastic_tensor(getMaterialProperty<RankFourTensor>("D_tensor_name")),
+    _D_elastic_energy(getMaterialProperty<Real>("D_tensor_energy_name")),
     _elastic_strain(getMaterialPropertyByName<RankTwoTensor>("elastic_strain"))
 {
 }
@@ -36,16 +39,17 @@ Real
 ACGrGrElasticEnergy::computeDFDOP(PFFunctionType type)
 {
   // Access the heterogeneous strain calculated by the Solid Mechanics kernels
-  RankTwoTensor strain(_elastic_strain[_qp]);
+  // RankTwoTensor strain(_elastic_strain[_qp]);
 
   // Compute the partial derivative of the stress wrt the order parameter
-  RankTwoTensor D_stress = _D_elastic_tensor[_qp] * strain;
+  // RankTwoTensor D_stress = _D_elastic_tensor[_qp] * strain;
 
   switch (type)
   {
     case Residual:
-      return 0.5 *
-             D_stress.doubleContraction(strain); // Compute the deformation energy driving force
+      // return 0.5 *
+      //        D_stress.doubleContraction(strain); // Compute the deformation energy driving force
+      return _D_elastic_energy[_qp];
 
     case Jacobian:
       return 0.0;

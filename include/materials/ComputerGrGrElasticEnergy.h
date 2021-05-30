@@ -16,7 +16,7 @@
 
 class ComputerGrGrElasticEnergy : public DerivativeMaterialInterface<Material>
 {
-  public:
+  public: 
     static InputParameters validParams();
 
     ComputerGrGrElasticEnergy(const InputParameters & parameters);
@@ -27,8 +27,9 @@ class ComputerGrGrElasticEnergy : public DerivativeMaterialInterface<Material>
     const std::string _base_name;
     std::string _elasticity_energy_name;
 
-    const MaterialProperty<RankTwoTensor> & _pk2;
-    const MaterialProperty<RankTwoTensor> & _lag_e;
+    const MaterialProperty<RankTwoTensor> & _pk2_grgr;
+    const MaterialProperty<RankTwoTensor> & _lag_e_grgr;
+    MaterialProperty<RankTwoTensor> & _piaolak2;
 
     Real _length_scale;
     Real _pressure_scale;
@@ -42,6 +43,9 @@ class ComputerGrGrElasticEnergy : public DerivativeMaterialInterface<Material>
     const std::vector<const VariableValue *> _vals;
 
     MaterialProperty<Real> & _elasticity_energy;
+
+    // MaterialProperty<RankTwoTensor> & _piaola2;
+
 
     std::vector<MaterialProperty<Real> *> _D_elastic_energy;
 

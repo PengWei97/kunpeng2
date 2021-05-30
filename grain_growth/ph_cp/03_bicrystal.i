@@ -224,7 +224,7 @@
     hprops = '1.0 541.5 60.8 109.8 2.5'
     gprops = '1 4 60.8 5 8 60.8 9 12 60.8'
     tan_mod_type = exact
-    outputs = exodus
+    # outputs = exodus
   [../]
 
   # [./GrGrELasticEnergt]
@@ -233,20 +233,13 @@
 
   #   outputs = exodus
   # [../]
-  # [./elasticenergy] 
-  #   type = ComputerGrGrElasticEnergy 
-  #   # args = 'gr0 gr1' 
-  #   grain_tracker = grain_tracker
-  #   outputs = exodus 
-  # [../]
 
   [./elasticenergy] 
     type = GetMaterialParams 
-    args = 'gr0 gr1' 
+    # args = 'gr0 gr1' 
     grain_tracker = grain_tracker
-    outputs = exodus 
+    # outputs = exodus 
   [../]
-
 []
 
 [UserObjects]

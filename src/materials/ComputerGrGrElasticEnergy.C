@@ -36,8 +36,9 @@ ComputerGrGrElasticEnergy::ComputerGrGrElasticEnergy(
   : DerivativeMaterialInterface<Material>(parameters),  
     _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
     _elasticity_energy_name(_base_name + "elasticity_energy"),
-    _pk2(getMaterialPropertyByName<RankTwoTensor>("pk2")),
-    _lag_e(getMaterialPropertyByName<RankTwoTensor>("lage")),
+    _pk2_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "pk2_grgr")),
+    _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "lage_grgr")),
+    _piaolak2(declareProperty<RankTwoTensor>("piaolak2")),
     _length_scale(getParam<Real>("length_scale")),
     _pressure_scale(getParam<Real>("pressure_scale")),
     _grain_tracker(getUserObject<GrainDataTrackerAdd<RankFourTensor,RealVectorValue>>("grain_tracker")),
@@ -64,6 +65,7 @@ ComputerGrGrElasticEnergy::computerQpGrGrElasticityEnergy()
 
   // Calculate elasticity tensor
   _elasticity_energy[_qp] = 0;
+  // _piaola2[_qp].zero();
   Real sum_h = 0.0;
   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
   {
@@ -75,10 +77,9 @@ ComputerGrGrElasticEnergy::computerQpGrGrElasticityEnergy()
     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
 
     // Sum all elastic energy $ = $ 
-    _elasticity_energy[_qp] += 0.5 * _pk2[_qp].doubleContraction(_lag_e[_qp])*h;
+    _elasticity_energy[_qp] += 0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp])*h;
     sum_h += h;
   }
-
   const Real tol = 1.0e-10;
   sum_h = std::max(sum_h, tol);
   _elasticity_energy[_qp] /=sum_h; // phi^e
@@ -99,9 +100,9 @@ ComputerGrGrElasticEnergy::computerQpGrGrElasticityEnergy()
 
     Real & EE_deriv = (*_D_elastic_energy[op_index])[_qp];
 
-    EE_deriv = (0.5 * _pk2[_qp].doubleContraction(_lag_e[_qp])/sum_h - _elasticity_energy[_qp]) * dhdopi;
+    EE_deriv = (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp])/sum_h - _elasticity_energy[_qp]) * dhdopi;
 
     // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
-    EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
+    // EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
   }
 }

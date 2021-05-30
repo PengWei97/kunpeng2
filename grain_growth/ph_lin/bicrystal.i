@@ -76,9 +76,10 @@
 [Kernels]
   [./PolycrystalKernel]
   [../]
-  # [./PolycrystalElasticDrivingForce]
-  [./PolycrystalElasticEnergy]
+  [./PolycrystalElasticDrivingForce]
+  # [./PolycrystalElasticEnergy]
     # var_name_base = gr
+    # outputs = exodus
   [../]
   [./TensorMechanics]
     displacements = 'disp_x disp_y'
@@ -192,7 +193,7 @@
   [./ElasticityTensor]
     type = ComputePolycrystalElasticityTensor
     grain_tracker = grain_tracker
-    # outputs = exodus
+    outputs = exodus
   [../]
   [./strain]
     type = ComputeSmallStrain
@@ -203,8 +204,13 @@
   [./stress]
     type = ComputeLinearElasticStress
     block = 0
-    outputs = exodus
+    # outputs = exodus
   [../]
+  # [./elasticenergy] 
+  #   type = GetMaterialParams 
+  #   args = 'gr0 gr1' 
+  #   # outputs = exodus 
+  # [../]
 []
 
 [UserObjects]

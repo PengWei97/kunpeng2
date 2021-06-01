@@ -243,7 +243,7 @@
   # [../]
 
   [./elasticenergy] 
-    type = GetMaterialParams 
+    type = ComputerGrGrCPElasticEnergy 
     # args = 'gr0 gr1' 
     grain_tracker = grain_tracker
     outputs = exodus 

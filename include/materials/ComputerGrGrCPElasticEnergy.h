@@ -8,12 +8,12 @@
 /**
  * Material class to compute the elastic free energy and its derivatives
  */
-class GetMaterialParams : public DerivativeFunctionMaterialBase
+class ComputerGrGrCPElasticEnergy : public DerivativeFunctionMaterialBase
 {
 public:
   static InputParameters validParams();
 
-  GetMaterialParams(const InputParameters & parameters);
+  ComputerGrGrCPElasticEnergy(const InputParameters & parameters);
 
   virtual void initialSetup() override;
 
@@ -46,9 +46,6 @@ protected:
 
   MaterialProperty<Real> & _elasticity_energy;
 
-  // MaterialProperty<RankTwoTensor> & _piaola2;
-
-
   std::vector<MaterialProperty<Real> *> _D_elastic_energy;
 
   std::vector<MaterialProperty<Real> *> _h;
@@ -57,12 +54,5 @@ protected:
 
   /// Conversion factor from J to eV
   const Real _JtoeV;
-
-  /// Stress tensor
-  const MaterialProperty<RankTwoTensor> & _stress;
-
-  ///@{ Strain and derivatives
-  const MaterialProperty<RankTwoTensor> & _strain;
-  ///@}
 };
 

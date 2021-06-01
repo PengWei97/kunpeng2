@@ -31,7 +31,4 @@ protected:
 private:
   // const MaterialProperty<RankFourTensor> & _D_elastic_tensor;
   const MaterialProperty<Real> & _D_elastic_energy;
-  const MaterialProperty<RankTwoTensor> & _elastic_strain;
-  const MaterialProperty<RankTwoTensor> & _lag_e_grgr;
-  const MaterialProperty<RankFourTensor> & _D_elastic_tensor;
 };

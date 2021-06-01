@@ -6,7 +6,7 @@
   xmax = 1000
   ymax = 1000
   elem_type = QUAD4
-  uniform_refine = 2
+  uniform_refine = 4
 []
 
 [GlobalParams]
@@ -206,11 +206,11 @@
     block = 0
     # outputs = exodus
   [../]
-  # [./elasticenergy] 
-  #   type = GetMaterialParams 
-  #   args = 'gr0 gr1' 
-  #   # outputs = exodus 
-  # [../]
+  [./elasticenergy] 
+    type = ElasticEnergyMaterial 
+    args = 'gr0 gr1' 
+    outputs = exodus 
+  [../]
 []
 
 [UserObjects]

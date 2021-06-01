@@ -1,14 +1,12 @@
 [Mesh]
   type = GeneratedMesh
   dim = 2
-  nx = 10
-  ny = 3
+  nx = 20
+  ny = 6
   xmax = 1000
   ymax = 1000
   elem_type = QUAD4
   uniform_refine = 2
-  skip_partitioning=true
-
 []
 
 [GlobalParams]
@@ -24,15 +22,6 @@
   [./disp_y]
   [../]
 []
-
-[Functions]
-  [./tdisp]
-    type = ParsedFunction
-    value = if(t<=100.0,-0.1*t,10)
-    # value = 0
-  [../]
-[]
-
 
 [ICs]
   [./PolycrystalICs]
@@ -78,20 +67,19 @@
   #   order = CONSTANT
   #   family = MONOMIAL
   # [../]
-  [./euler_angle]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
+  # [./euler_angle]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # [../]
 []
 
 [Kernels]
   [./PolycrystalKernel]
   [../]
-  [./PolycrystalElasticEnergy]
+  [./PolycrystalElasticDrivingForce]
   [../]
   [./TensorMechanics]
     displacements = 'disp_x disp_y'
-    use_displaced_mesh = true
   [../]
 []
 
@@ -156,27 +144,26 @@
   #   execute_on = 'initial timestep_begin'
   #   flood_counter = grain_tracker
   # [../]
-  [./euler_angle]
-    type = OutputEulerAngles
-    variable = euler_angle
-    euler_angle_provider = euler_angle_file
-    grain_tracker = grain_tracker
-    output_euler_angle = 'phi1'
-  [../]
+  # [./euler_angle]
+  #   type = OutputEulerAngles
+  #   variable = euler_angle
+  #   euler_angle_provider = euler_angle_file
+  #   grain_tracker = grain_tracker
+  #   output_euler_angle = 'phi1'
+  # [../]
 []
 
 [BCs]
   [./top_displacement]
-    type = FunctionDirichletBC
+    type = DirichletBC
     variable = disp_y
     boundary = top
-    function = tdisp
+    value = -10.0
   [../]
   [./x_anchor]
     type = DirichletBC
     variable = disp_x
-    # boundary = 'left right'
-    boundary = 'left'
+    boundary = 'left right'
     value = 0.0
   [../]
   [./y_anchor]
@@ -199,54 +186,20 @@
     time_scale = 1.0e-6
   [../]
   [./ElasticityTensor]
-    type = ComputeElasticityTensorCPAdd
-    C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.754e5 0.754e5 0.754e5'
-    fill_method = symmetric9
+    type = PWComputePolycrystalElasticityTensor
     grain_tracker = grain_tracker
+    outputs = exodus
 
-    # outputs = exodus
   [../]
   [./strain]
-    type = ComputeFiniteStrain
+    type = ComputeSmallStrain
     block = 0
     displacements = 'disp_x disp_y'
-    # outputs = exodus
-    # 
   [../]
-  [./crysp]
-    type = GrGrFiniteStrainCrystalPlasticity
+  [./stress]
+    type = ComputeLinearElasticStress
     block = 0
-    gtol = 1e-2
-    slip_sys_file_name = input_slip_sys.txt
-    nss = 12
-    num_slip_sys_flowrate_props = 2 #Number of properties in a slip system
-    flowprops = '1 4 0.001 0.1 5 8 0.001 0.1 9 12 0.001 0.1'
-    hprops = '1.0 541.5 60.8 109.8 2.5'
-    gprops = '1 4 60.8 5 8 60.8 9 12 60.8'
-    tan_mod_type = exact
-    outputs = exodus
   [../]
-
-  # [./GrGrELasticEnergt]
-  #   type = ComputerGrGrElasticEnergy
-  #   grain_tracker = grain_tracker
-
-  #   outputs = exodus
-  # [../]
-  # [./elasticenergy] 
-  #   type = ComputerGrGrElasticEnergy 
-  #   # args = 'gr0 gr1' 
-  #   grain_tracker = grain_tracker
-  #   outputs = exodus 
-  # [../]
-
-  [./elasticenergy] 
-    type = GetMaterialParams 
-    # args = 'gr0 gr1' 
-    grain_tracker = grain_tracker
-    outputs = exodus 
-  [../]
-
 []
 
 [UserObjects]
@@ -255,7 +208,7 @@
     file_name = test.tex
   [../]
   [./grain_tracker]
-    type = GrainTrackerElasticityAdd
+    type = GrainTrackerElasticity
     connecting_threshold = 0.05
     compute_var_to_feature_map = true
     flood_entity_type = elemental
@@ -265,7 +218,7 @@
     fill_method = symmetric9
     C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
 
-    # outputs = none
+    outputs = none
   [../]
 []
 
@@ -299,7 +252,7 @@
   nl_rel_tol = 1e-9
 
   start_time = 0.0
-  num_steps = 100
+  num_steps = 30
   dt = 0.2
 
   [./Adaptivity]

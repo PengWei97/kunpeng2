@@ -26,6 +26,8 @@ GetMaterialParams::GetMaterialParams(const InputParameters & parameters)
   : DerivativeFunctionMaterialBase(parameters),
     _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
     _elasticity_energy_name(_base_name + "elasticity_energy"),
+    _h_name(_base_name + "h"),
+    _D_h_name(_base_name + "D_h"),
     _pk2_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "pk2_grgr")),
     _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "lage_grgr")),
     // _piaolak2(declareProperty<RankTwoTensor>("piaolak2")),
@@ -36,6 +38,8 @@ GetMaterialParams::GetMaterialParams(const InputParameters & parameters)
     _vals(coupledValues("v")),
     _elasticity_energy(declareProperty<Real>("elasticity_energy")),
     _D_elastic_energy(_op_num),
+    _h(_op_num),
+    _D_h(_op_num),
     _JtoeV(6.24150974e18),
     _stress(getMaterialPropertyByName<RankTwoTensor>(_base_name + "stress")),
     _strain(getMaterialPropertyByName<RankTwoTensor>(_base_name + "elastic_strain"))
@@ -46,59 +50,63 @@ GetMaterialParams::GetMaterialParams(const InputParameters & parameters)
     // declare elasticity tensor derivative properties
     _D_elastic_energy[op_index] = &declarePropertyDerivative<Real>(
         _elasticity_energy_name, getVar("v", op_index)->name());
+    _h[op_index] = &declarePropertyDerivative<Real>(
+        _h_name, getVar("v", op_index)->name());
+    _D_h[op_index] = &declarePropertyDerivative<Real>(
+        _D_h_name, getVar("v", op_index)->name());
   }
 
 }
 
-void
-GetMaterialParams::computerQpGrGrElasticityEnergy()
-{
-  // Get list of active order parameters from grain tracker
-  const auto & op_to_grains = _grain_tracker.getVarToFeatureVector(_current_elem->id());
+// void
+// GetMaterialParams::computerQpGrGrElasticityEnergy()
+// {
+//   // Get list of active order parameters from grain tracker
+//   const auto & op_to_grains = _grain_tracker.getVarToFeatureVector(_current_elem->id());
 
-  // Calculate elasticity tensor
-  _elasticity_energy[_qp] = 0;
-  // _piaola2[_qp].zero();
-  Real sum_h = 0.0;
-  for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
-  {
-    auto grain_id = op_to_grains[op_index];
-    if (grain_id == FeatureFloodCount::invalid_id)
-      continue;
+//   // Calculate elasticity tensor
+//   _elasticity_energy[_qp] = 0;
+//   // _piaola2[_qp].zero();
+//   Real sum_h = 0.0;
+//   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
+//   {
+//     auto grain_id = op_to_grains[op_index];
+//     if (grain_id == FeatureFloodCount::invalid_id)
+//       continue;
 
-    // Interpolation factor for elasticity tensors
-    Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
+//     // Interpolation factor for elasticity tensors
+//     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
 
-    // Sum all elastic energy $ = $ 
-    _elasticity_energy[_qp] += 0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]);
-    sum_h += h;
-  }
-  const Real tol = 1.0e-10;
-  sum_h = std::max(sum_h, tol);
-  // _elasticity_energy[_qp] /=sum_h; // phi^e
+//     // Sum all elastic energy $ = $ 
+//     _elasticity_energy[_qp] += 0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]);
+//     sum_h += h;
+//   }
+//   const Real tol = 1.0e-10;
+//   sum_h = std::max(sum_h, tol);
+//   // _elasticity_energy[_qp] /=sum_h; // phi^e
 
 
-  // Calculate elasticity tensor derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
-  for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
-    (*_D_elastic_energy[op_index])[_qp] = 0;
+//   // Calculate elasticity tensor derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
+//   for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
+//     (*_D_elastic_energy[op_index])[_qp] = 0;
 
-  for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
-  {
-    auto grain_id = op_to_grains[op_index];
-    if (grain_id == FeatureFloodCount::invalid_id)
-      continue;
+//   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
+//   {
+//     auto grain_id = op_to_grains[op_index];
+//     if (grain_id == FeatureFloodCount::invalid_id)
+//       continue;
 
-    // 
-    Real dhdopi = libMesh::pi * std::cos(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5)) / 2.0;
+//     // 
+//     Real dhdopi = libMesh::pi * std::cos(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5)) / 2.0;
 
-    Real & EE_deriv = (*_D_elastic_energy[op_index])[_qp];
+//     Real & EE_deriv = (*_D_elastic_energy[op_index])[_qp];
 
-    EE_deriv = (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp])/sum_h - _elasticity_energy[_qp]) * dhdopi;
+//     EE_deriv = (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]) - _elasticity_energy[_qp])/sum_h) * dhdopi;
 
-    // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
-    // EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
-  }
-}
+//     // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
+//     // EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
+//   }
+// }
 
 void
 GetMaterialParams::initialSetup()
@@ -126,12 +134,12 @@ GetMaterialParams::computeF()
     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
 
     // Sum all elastic energy $ = $ 
-    _elasticity_energy[_qp] += 0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp])*h;
+    _elasticity_energy[_qp] += (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]))*h;
     sum_h += h;
   }
   const Real tol = 1.0e-10;
   sum_h = std::max(sum_h, tol);
-  // _elasticity_energy[_qp] /=sum_h; // phi^e
+  _elasticity_energy[_qp] /= sum_h; // phi^e
 
 
   // Calculate elasticity tensor derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
@@ -148,18 +156,48 @@ GetMaterialParams::computeF()
     Real dhdopi = libMesh::pi * std::cos(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5)) / 2.0;
 
     Real & EE_deriv = (*_D_elastic_energy[op_index])[_qp];
+    Real & HH = (*_h[op_index])[_qp];
+    Real & HH_deriv = (*_D_h[op_index])[_qp];
 
-    EE_deriv = (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp])/sum_h - _elasticity_energy[_qp]) * dhdopi;
+    EE_deriv = ((0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]) - _elasticity_energy[_qp])/sum_h) * dhdopi;
+
+    HH = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
+    HH_deriv = dhdopi;
 
     // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
     EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
   }
-  return 0.5 * _elasticity_energy[_qp];
+
+  return _elasticity_energy[_qp];
 }
 
 // Real
-// GGElasticEnergyMaterial::computeDF(unsigned int i_var)
+// GetMaterialParams::computeDF(unsigned int i_var)
 // {
+//   const auto & op_to_grains = _grain_tracker.getVarToFeatureVector(_current_elem->id());
+
+//   // Calculate elasticity tensor
+//   _elasticity_energy[_qp] = 0;
+//   // _piaola2[_qp].zero();
+//   Real sum_h = 0.0;
+//   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
+//   {
+//     auto grain_id = op_to_grains[op_index];
+//     if (grain_id == FeatureFloodCount::invalid_id)
+//       continue;
+
+//     // Interpolation factor for elasticity tensors
+//     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
+
+//     // Sum all elastic energy $ = $ 
+//     _elasticity_energy[_qp] += (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]))*h;
+//     sum_h += h;
+//   }
+//   const Real tol = 1.0e-10;
+//   sum_h = std::max(sum_h, tol);
+//   _elasticity_energy[_qp] /= sum_h; // phi^e
+
+
 //   // Calculate elasticity tensor derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
 //   for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
 //     (*_D_elastic_energy[op_index])[_qp] = 0;
@@ -175,12 +213,12 @@ GetMaterialParams::computeF()
 
 //     Real & EE_deriv = (*_D_elastic_energy[op_index])[_qp];
 
-//     EE_deriv = (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp])/sum_h - _elasticity_energy[_qp]) * dhdopi;
+//     EE_deriv = ((0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]) - _elasticity_energy[_qp])/sum_h) * dhdopi;
 
 //     // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
-//     // EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
+//     EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
 //   }
 
 //   // product rule d/di computeF (doubleContraction commutes)
-//   return EE_deriv;
+//   return ;
 // }

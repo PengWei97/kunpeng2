@@ -23,14 +23,14 @@ ACGrGrElasticEnergy::validParams()
   // params.addRequiredParam<MaterialPropertyName>(
       // "D_tensor_name", "The elastic tensor derivative for the specific order parameter");
   params.addRequiredParam<MaterialPropertyName>(
-      "D_tensor_energy_name", "The elastic tensor derivative for the specific order parameter");
+      "D_elastic_energy_name", "The elastic tensor derivative for the specific order parameter");
   return params;
 }
 
 ACGrGrElasticEnergy::ACGrGrElasticEnergy(const InputParameters & parameters)
   : ACBulk<Real>(parameters),
     // _D_elastic_tensor(getMaterialProperty<RankFourTensor>("D_tensor_name")),
-    _D_elastic_energy(getMaterialProperty<Real>("D_tensor_energy_name")),
+    _D_elastic_energy(getMaterialProperty<Real>("D_elastic_energy_name")),
     _elastic_strain(getMaterialPropertyByName<RankTwoTensor>("elastic_strain"))
 {
 }

@@ -10,7 +10,7 @@
 #pragma once
 
 #include "ComputeElasticityTensorBase.h"
-#include "GrainDataTrackerAdd.h"
+#include "GrainDataTracker.h"
 
 // Forward Declarations
 class EulerAngleProvider;
@@ -18,41 +18,49 @@ class EulerAngleProvider;
 /**
  * Compute an evolving elasticity tensor coupled to a grain growth phase field model.
  */
-class ComputePolycrystalElasticityTensorAdd : public ComputeElasticityTensorBase 
+class PWComputePolycrystalElasticityTensor : public ComputeElasticityTensorBase
 {
 public:
   static InputParameters validParams();
+  // 共有数据接口
 
-  ComputePolycrystalElasticityTensorAdd(const InputParameters & parameters);
+  PWComputePolycrystalElasticityTensor(const InputParameters & parameters);
+  // 构造函数
 
 protected:
   virtual void computeQpElasticityTensor();
+  // 定义一个函数
 
   std::string _h_name;
 
   std::string _D_h_name;
 
+  std::string _x_name;
+
   Real _length_scale;
   Real _pressure_scale;
 
   /// Grain tracker object
-  const GrainDataTrackerAdd<RankFourTensor,RealVectorValue> & _grain_tracker;
+  const GrainDataTracker<RankFourTensor> & _grain_tracker;
+  // 获取grain_tracker
 
   /// Number of order parameters
   const unsigned int _op_num;
+  // 序参数数目
 
   /// Order parameters
   const std::vector<const VariableValue *> _vals;
+  // 序参数的变量
 
   /// vector of elasticity tensor material properties
   std::vector<MaterialProperty<RankFourTensor> *> _D_elastic_tensor;
+  // 存放RankFourTensor类型的指针
 
   std::vector<MaterialProperty<Real> *> _h;
 
   std::vector<MaterialProperty<Real> *> _D_h;
 
-  /// Crystal Rotation Matrix
-  MaterialProperty<RankTwoTensor> & _crysrot;
+  std::vector<MaterialProperty<Real> *> _x;
 
   /// Conversion factor from J to eV
   const Real _JtoeV;

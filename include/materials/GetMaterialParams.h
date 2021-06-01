@@ -18,13 +18,17 @@ public:
   virtual void initialSetup() override;
 
 protected:
-  virtual void computerQpGrGrElasticityEnergy();
+  // virtual void computerQpGrGrElasticityEnergy();
   virtual Real computeF() override;
-  // virtual Real computeDF(unsigned int i_var) override;
+  // virtual Real computeDF(unsigned int op_num) override;
 
   const std::string _base_name;
 
   std::string _elasticity_energy_name;
+
+  std::string _h_name;
+
+  std::string _D_h_name;
 
   const MaterialProperty<RankTwoTensor> & _pk2_grgr;
   const MaterialProperty<RankTwoTensor> & _lag_e_grgr;
@@ -46,6 +50,10 @@ protected:
 
 
   std::vector<MaterialProperty<Real> *> _D_elastic_energy;
+
+  std::vector<MaterialProperty<Real> *> _h;
+
+  std::vector<MaterialProperty<Real> *> _D_h;
 
   /// Conversion factor from J to eV
   const Real _JtoeV;

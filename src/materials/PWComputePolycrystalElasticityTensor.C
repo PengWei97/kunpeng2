@@ -7,13 +7,13 @@
 //* Licensed under LGPL 2.1, please see LICENSE for details
 //* https://www.gnu.org/licenses/lgpl-2.1.html
 
-#include "ComputePolycrystalElasticityTensorAdd.h"
+#include "PWComputePolycrystalElasticityTensor.h"
 #include "RotationTensor.h"
 
-registerMooseObject("PhaseFieldApp", ComputePolycrystalElasticityTensorAdd);
+registerMooseObject("PhaseFieldApp", PWComputePolycrystalElasticityTensor);
 
 InputParameters
-ComputePolycrystalElasticityTensorAdd::validParams()
+PWComputePolycrystalElasticityTensor::validParams()
 {
   InputParameters params = ComputeElasticityTensorBase::validParams();
   params.addClassDescription(
@@ -27,20 +27,21 @@ ComputePolycrystalElasticityTensorAdd::validParams()
   return params;
 }
 
-ComputePolycrystalElasticityTensorAdd::ComputePolycrystalElasticityTensorAdd(
+PWComputePolycrystalElasticityTensor::PWComputePolycrystalElasticityTensor(
     const InputParameters & parameters)
   : ComputeElasticityTensorBase(parameters),
     _h_name(_base_name + "h"),
     _D_h_name(_base_name + "D_h"),
+    _x_name(_base_name + "x"),
     _length_scale(getParam<Real>("length_scale")),
     _pressure_scale(getParam<Real>("pressure_scale")),
-    _grain_tracker(getUserObject<GrainDataTrackerAdd<RankFourTensor,RealVectorValue>>("grain_tracker")),
+    _grain_tracker(getUserObject<GrainDataTracker<RankFourTensor>>("grain_tracker")),
     _op_num(coupledComponents("v")),
     _vals(coupledValues("v")),
     _D_elastic_tensor(_op_num),
     _h(_op_num),
     _D_h(_op_num),
-    _crysrot(declareProperty<RankTwoTensor>("crysrot")),
+    _x(_op_num),
     _JtoeV(6.24150974e18)
 {
   // Loop over variables (ops)
@@ -53,18 +54,19 @@ ComputePolycrystalElasticityTensorAdd::ComputePolycrystalElasticityTensorAdd(
         _h_name, getVar("v", op_index)->name());
     _D_h[op_index] = &declarePropertyDerivative<Real>(
         _D_h_name, getVar("v", op_index)->name());
+    _x[op_index] = &declarePropertyDerivative<Real>(
+        _x_name, getVar("v", op_index)->name());
   }
 }
 
 void
-ComputePolycrystalElasticityTensorAdd::computeQpElasticityTensor()
+PWComputePolycrystalElasticityTensor::computeQpElasticityTensor()
 {
   // Get list of active order parameters from grain tracker
   const auto & op_to_grains = _grain_tracker.getVarToFeatureVector(_current_elem->id());
 
   // Calculate elasticity tensor
   _elasticity_tensor[_qp].zero();
-  _crysrot[_qp].zero();
   Real sum_h = 0.0;
   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
   {
@@ -76,16 +78,13 @@ ComputePolycrystalElasticityTensorAdd::computeQpElasticityTensor()
     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
 
     // Sum all rotated elasticity tensors
-    _elasticity_tensor[_qp] += _grain_tracker.getDataElasticity(grain_id) * h;
-    _crysrot[_qp] += RotationTensor(_grain_tracker.getDataRotation(grain_id)).transpose()* h;
+    _elasticity_tensor[_qp] += _grain_tracker.getData(grain_id) * h;
     sum_h += h;
   }
 
   const Real tol = 1.0e-10;
   sum_h = std::max(sum_h, tol);
   _elasticity_tensor[_qp] /= sum_h;
-  _crysrot[_qp] /= sum_h;
-
 
   // Calculate elasticity tensor derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
   for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
@@ -101,13 +100,13 @@ ComputePolycrystalElasticityTensorAdd::computeQpElasticityTensor()
     RankFourTensor & C_deriv = (*_D_elastic_tensor[op_index])[_qp];
     Real & HH = (*_h[op_index])[_qp];
     Real & HH_deriv = (*_D_h[op_index])[_qp];
+    Real & VAL = (*_x[op_index])[_qp];
 
+    C_deriv = (_grain_tracker.getData(grain_id) - _elasticity_tensor[_qp]) * dhdopi / sum_h;
 
-    C_deriv = (_grain_tracker.getDataElasticity(grain_id) - _elasticity_tensor[_qp]) * dhdopi / sum_h;
-    
     HH = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
     HH_deriv = dhdopi;
-    
+    VAL = (*_vals[op_index])[_qp];
 
     // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
     C_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;

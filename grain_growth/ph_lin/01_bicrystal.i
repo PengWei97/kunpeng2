@@ -220,6 +220,12 @@
     type = ComputeLinearElasticStress
     block = 0
   [../]
+  [./elasticenergy] 
+    type = GetMaterialParams 
+    # args = 'gr0 gr1' 
+    grain_tracker = grain_tracker
+    outputs = exodus 
+  [../]
 []
 
 [UserObjects]

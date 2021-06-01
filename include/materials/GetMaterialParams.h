@@ -65,3 +65,4 @@ protected:
   const MaterialProperty<RankTwoTensor> & _strain;
   ///@}
 };
+

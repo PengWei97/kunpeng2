@@ -7,16 +7,16 @@
 //* Licensed under LGPL 2.1, please see LICENSE for details
 //* https://www.gnu.org/licenses/lgpl-2.1.html
 
-#include "ACGrGrElasticEnergy.h"
+#include "ACGrGrElasticEnergyLine.h"
 
 #include "Material.h"
 #include "RankFourTensor.h"
 #include "RankTwoTensor.h"
 
-registerMooseObject("PhaseFieldApp", ACGrGrElasticEnergy);
+registerMooseObject("PhaseFieldApp", ACGrGrElasticEnergyLine);
 
 InputParameters
-ACGrGrElasticEnergy::validParams()
+ACGrGrElasticEnergyLine::validParams()
 {
   InputParameters params = ACBulk<Real>::validParams();
   params.addClassDescription("Adds elastic energy contribution to the Allen-Cahn equation");
@@ -27,25 +27,25 @@ ACGrGrElasticEnergy::validParams()
   return params;
 }
 
-ACGrGrElasticEnergy::ACGrGrElasticEnergy(const InputParameters & parameters)
+ACGrGrElasticEnergyLine::ACGrGrElasticEnergyLine(const InputParameters & parameters)
   : ACBulk<Real>(parameters),
     // _D_elastic_tensor(getMaterialProperty<RankFourTensor>("D_tensor_name")),
     _D_elastic_energy(getMaterialProperty<Real>("D_elastic_energy_name")),
-    _elastic_strain(getMaterialPropertyByName<RankTwoTensor>("elastic_strain")),
-    _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>("lage_grgr")),
+    // _elastic_strain(getMaterialPropertyByName<RankTwoTensor>("elastic_strain")),
+    // _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>("lage_grgr")),
      _D_elastic_tensor(getMaterialProperty<RankFourTensor>("D_tensor_name"))
 {
 }
 
 Real
-ACGrGrElasticEnergy::computeDFDOP(PFFunctionType type)
+ACGrGrElasticEnergyLine::computeDFDOP(PFFunctionType type)
 {
   // Access the heterogeneous strain calculated by the Solid Mechanics kernels
   // RankTwoTensor strain(_elastic_strain[_qp]);
-  RankTwoTensor strain(_lag_e_grgr[_qp]);
+  // RankTwoTensor strain(_lag_e_grgr[_qp]);
 
   // Compute the partial derivative of the stress wrt the order parameter
-  RankTwoTensor D_stress = _D_elastic_tensor[_qp] * strain;
+  // RankTwoTensor D_stress = _D_elastic_tensor[_qp] * strain;
 
   switch (type)
   {
@@ -53,7 +53,7 @@ ACGrGrElasticEnergy::computeDFDOP(PFFunctionType type)
       // return 0.5 *
       //        D_stress.doubleContraction(strain); // Compute the deformation energy driving force
       return _D_elastic_energy[_qp];
-      return 0.5 * D_stress.doubleContraction(strain);
+      // return 0.5 * D_stress.doubleContraction(strain);
 
 
     case Jacobian:

@@ -86,8 +86,10 @@
 
 [Kernels]
   [./PolycrystalKernel]
+    # use_displaced_mesh = true
   [../]
   [./PolycrystalElasticEnergy]
+    # use_displaced_mesh = true
   [../]
   [./TensorMechanics]
     displacements = 'disp_x disp_y'
@@ -299,11 +301,11 @@
   nl_rel_tol = 1e-9
 
   start_time = 0.0
-  num_steps = 100
+  num_steps = 500
   dt = 0.2
 
   [./Adaptivity]
-   initial_adaptivity = 2
+    initial_adaptivity = 2
     refine_fraction = 0.7
     coarsen_fraction = 0.1
     max_h_level = 2

@@ -111,12 +111,15 @@ ComputeElasticityTensorCPAdd::computeQpElasticityTensor()
 
     // Sum all rotated elasticity tensors
     _elasticity_tensor[_qp] += _grain_tracker.getDataElasticity(grain_id) * h;
+    // _elasticity_tensor[_qp] += _grain_tracker.getDataElasticity(grain_id);
     _crysrot[_qp] += RotationTensor(_grain_tracker.getDataRotation(grain_id)).transpose()* h;
+    // _crysrot[_qp] += RotationTensor(_grain_tracker.getDataRotation(grain_id)).transpose();
     sum_h += h;
   }
 
   const Real tol = 1.0e-10;
   sum_h = std::max(sum_h, tol);
+  // sum_h = 1;
   _elasticity_tensor[_qp] /= sum_h;
   _crysrot[_qp] /= sum_h;
 

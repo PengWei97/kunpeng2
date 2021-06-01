@@ -1,10 +1,13 @@
+# 03: 弹性能打包传输到kernel
+
+
 [Mesh]
   type = GeneratedMesh
   dim = 2
   nx = 10
   ny = 3
-  xmax = 1000
-  ymax = 1000
+  xmax = 20
+  ymax = 20
   elem_type = QUAD4
   uniform_refine = 2
 []
@@ -28,8 +31,8 @@
     [./BicrystalBoundingBoxIC]
       x1 = 0
       y1 = 0
-      x2 = 500
-      y2 = 1000
+      x2 = 10
+      y2 = 20
     [../]
   [../]
 []
@@ -39,38 +42,38 @@
     order = FIRST
     family = LAGRANGE
   [../]
-  [./elastic_strain11]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./elastic_strain22]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./elastic_strain12]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./unique_grains]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./var_indices]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./C1111]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./active_bounds_elemental]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./euler_angle]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
+  # [./elastic_strain11]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # [../]
+  # [./elastic_strain22]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # [../]
+  # [./elastic_strain12]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # [../]
+  # [./unique_grains]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # [../]
+  # [./var_indices]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # [../]
+  # [./C1111]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # [../]
+  # [./active_bounds_elemental]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # [../]
+  # [./euler_angle]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # [../]
 []
 
 [Kernels]
@@ -89,75 +92,75 @@
     variable = bnds
     execute_on = timestep_end
   [../]
-  [./elastic_strain11]
-    type = RankTwoAux
-    variable = elastic_strain11
-    rank_two_tensor = elastic_strain
-    index_i = 0
-    index_j = 0
-    execute_on = timestep_end
-  [../]
-  [./elastic_strain22]
-    type = RankTwoAux
-    variable = elastic_strain22
-    rank_two_tensor = elastic_strain
-    index_i = 1
-    index_j = 1
-    execute_on = timestep_end
-  [../]
-  [./elastic_strain12]
-    type = RankTwoAux
-    variable = elastic_strain12
-    rank_two_tensor = elastic_strain
-    index_i = 0
-    index_j = 1
-    execute_on = timestep_end
-  [../]
-  [./unique_grains]
-    type = FeatureFloodCountAux
-    variable = unique_grains
-    flood_counter = grain_tracker
-    execute_on = 'initial timestep_begin'
-    field_display = UNIQUE_REGION
-  [../]
-  [./var_indices]
-    type = FeatureFloodCountAux
-    variable = var_indices
-    flood_counter = grain_tracker
-    execute_on = 'initial timestep_begin'
-    field_display = VARIABLE_COLORING
-  [../]
-  [./C1111]
-    type = RankFourAux
-    variable = C1111
-    rank_four_tensor = elasticity_tensor
-    index_l = 0
-    index_j = 0
-    index_k = 0
-    index_i = 0
-    execute_on = timestep_end
-  [../]
-  [./active_bounds_elemental]
-    type = FeatureFloodCountAux
-    variable = active_bounds_elemental
-    field_display = ACTIVE_BOUNDS
-    execute_on = 'initial timestep_begin'
-    flood_counter = grain_tracker
-  [../]
-  [./euler_angle]
-    type = OutputEulerAngles
-    variable = euler_angle
-    euler_angle_provider = euler_angle_file
-    grain_tracker = grain_tracker
-    output_euler_angle = 'phi1'
-  [../]
+  # [./elastic_strain11]
+  #   type = RankTwoAux
+  #   variable = elastic_strain11
+  #   rank_two_tensor = elastic_strain
+  #   index_i = 0
+  #   index_j = 0
+  #   execute_on = timestep_end
+  # [../]
+  # [./elastic_strain22]
+  #   type = RankTwoAux
+  #   variable = elastic_strain22
+  #   rank_two_tensor = elastic_strain
+  #   index_i = 1
+  #   index_j = 1
+  #   execute_on = timestep_end
+  # [../]
+  # [./elastic_strain12]
+  #   type = RankTwoAux
+  #   variable = elastic_strain12
+  #   rank_two_tensor = elastic_strain
+  #   index_i = 0
+  #   index_j = 1
+  #   execute_on = timestep_end
+  # [../]
+  # [./unique_grains]
+  #   type = FeatureFloodCountAux
+  #   variable = unique_grains
+  #   flood_counter = grain_tracker
+  #   execute_on = 'initial timestep_begin'
+  #   field_display = UNIQUE_REGION
+  # [../]
+  # [./var_indices]
+  #   type = FeatureFloodCountAux
+  #   variable = var_indices
+  #   flood_counter = grain_tracker
+  #   execute_on = 'initial timestep_begin'
+  #   field_display = VARIABLE_COLORING
+  # [../]
+  # [./C1111]
+  #   type = RankFourAux
+  #   variable = C1111
+  #   rank_four_tensor = elasticity_tensor
+  #   index_l = 0
+  #   index_j = 0
+  #   index_k = 0
+  #   index_i = 0
+  #   execute_on = timestep_end
+  # [../]
+  # [./active_bounds_elemental]
+  #   type = FeatureFloodCountAux
+  #   variable = active_bounds_elemental
+  #   field_display = ACTIVE_BOUNDS
+  #   execute_on = 'initial timestep_begin'
+  #   flood_counter = grain_tracker
+  # [../]
+  # [./euler_angle]
+  #   type = OutputEulerAngles
+  #   variable = euler_angle
+  #   euler_angle_provider = euler_angle_file
+  #   grain_tracker = grain_tracker
+  #   output_euler_angle = 'phi1'
+  # [../]
 []
 
 [Functions]
   [./tdisp]
     type = ParsedFunction
-    value = if(t<=100.0,-0.1*t,10)
-    # value = 0
+    # value = if(t<=19.0,-0.01*t,0.19)
+    value = 0.1
   [../]
 []
 
@@ -193,11 +196,13 @@
     type = GBEvolution
     block = 0
     T = 500 # K
-    wGB = 75 # nm
-    GBmob0 = 2.5e-6 #m^4/(Js) from Schoenfelder 1997
+    wGB = 4 # nm
+#     GBmob0 = 2.5e-6 #m^4/(Js) from Schoenfelder 1997
     Q = 0.23 #Migration energy in eV
     GBenergy = 0.708 #GB energy in J/m^2
-    time_scale = 1.0e-6
+    GBMobility = 1.0e-12
+    time_scale = 1.0e-9
+    length_scale = 1.0e-9
   [../]
   [./ElasticityTensor]
     type = ComputePolycrystalElasticityTensor
@@ -213,11 +218,12 @@
     block = 0
   [../]
   [./elasticenergy] 
-    type = ElasticEnergyMaterial 
-    args = 'gr0 gr1' 
-    # grain_tracker = grain_tracker
+    type = GetMaterialParamsLine
+    # args = 'gr0 gr1' 
+    grain_tracker = grain_tracker
     outputs = exodus 
   [../]
+
 []
 
 [UserObjects]
@@ -234,7 +240,7 @@
 
     euler_angle_provider = euler_angle_file
     fill_method = symmetric9
-    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
+    C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.75e5 0.75e5 0.75e5'
 
     outputs = none
   [../]
@@ -270,7 +276,8 @@
   nl_rel_tol = 1e-9
 
   start_time = 0.0
-  num_steps = 500
+  end_time = 20
+  # num_steps = 300
   dt = 0.2
 
   [./Adaptivity]

@@ -18,12 +18,12 @@
  * Must access the elastic_strain stored as a material property
  * Requires the name of the elastic tensor derivative as an input.
  */
-class ACGrGrElasticEnergy : public ACBulk<Real>
+class ACGrGrElasticEnergyLine : public ACBulk<Real>
 {
 public:
   static InputParameters validParams();
 
-  ACGrGrElasticEnergy(const InputParameters & parameters);
+  ACGrGrElasticEnergyLine(const InputParameters & parameters);
 
 protected:
   virtual Real computeDFDOP(PFFunctionType type);
@@ -31,7 +31,7 @@ protected:
 private:
   // const MaterialProperty<RankFourTensor> & _D_elastic_tensor;
   const MaterialProperty<Real> & _D_elastic_energy;
-  const MaterialProperty<RankTwoTensor> & _elastic_strain;
-  const MaterialProperty<RankTwoTensor> & _lag_e_grgr;
+  // const MaterialProperty<RankTwoTensor> & _elastic_strain;
+  // const MaterialProperty<RankTwoTensor> & _lag_e_grgr;
   const MaterialProperty<RankFourTensor> & _D_elastic_tensor;
 };

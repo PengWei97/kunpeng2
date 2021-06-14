@@ -30,6 +30,7 @@ kunpengApp::registerAll(Factory & f, ActionFactory & af, Syntax & syntax)
   Registry::registerActionsTo(af, {"kunpengApp"});
 
   /* register custom execute flags, action syntax, etc. here */
+  registerSyntax("PolycrystalElasticEnergyAction", "Kernels/PolycrystalElasticEnergy");
 }
 
 void

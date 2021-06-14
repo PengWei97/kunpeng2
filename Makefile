@@ -36,13 +36,13 @@ HEAT_CONDUCTION             := no
 LEVEL_SET                   := no
 MISC                        := no
 NAVIER_STOKES               := no
-PHASE_FIELD                 := no
+PHASE_FIELD                 := yes
 POROUS_FLOW                 := no
 RAY_TRACING                 := no
 RDG                         := no
 RICHARDS                    := no
 STOCHASTIC_TOOLS            := no
-TENSOR_MECHANICS            := no
+TENSOR_MECHANICS            := yes
 XFEM                        := no
 
 include $(MOOSE_DIR)/modules/modules.mk

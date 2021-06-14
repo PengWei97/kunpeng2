@@ -1,3 +1,6 @@
+# 03: 弹性能打包传输到kernel
+
+
 [Mesh]
   type = GeneratedMesh
   dim = 2
@@ -7,8 +10,6 @@
   ymax = 1000
   elem_type = QUAD4
   uniform_refine = 2
-  skip_partitioning=true
-
 []
 
 [GlobalParams]
@@ -41,22 +42,34 @@
     order = FIRST
     family = LAGRANGE
   [../]
-  # [./elastic_strain11]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
-  # [./elastic_strain22]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
-  # [./elastic_strain12]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
-  # [./unique_grains]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
+  [./elastic_strain11]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./elastic_strain22]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./elastic_strain12]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./unique_grains]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress11]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress12]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress22]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
   # [./var_indices]
   #   order = CONSTANT
   #   family = MONOMIAL
@@ -78,11 +91,10 @@
 [Kernels]
   [./PolycrystalKernel]
   [../]
-  [./PolycrystalElasticEnergy]
+  [./PolycrystalElasticDrivingForce]
   [../]
   [./TensorMechanics]
     displacements = 'disp_x disp_y'
-    use_displaced_mesh = true
   [../]
 []
 
@@ -92,30 +104,51 @@
     variable = bnds
     execute_on = timestep_end
   [../]
-  # [./elastic_strain11]
-  #   type = RankTwoAux
-  #   variable = elastic_strain11
-  #   rank_two_tensor = elastic_strain
-  #   index_i = 0
-  #   index_j = 0
-  #   execute_on = timestep_end
-  # [../]
-  # [./elastic_strain22]
-  #   type = RankTwoAux
-  #   variable = elastic_strain22
-  #   rank_two_tensor = elastic_strain
-  #   index_i = 1
-  #   index_j = 1
-  #   execute_on = timestep_end
-  # [../]
-  # [./elastic_strain12]
-  #   type = RankTwoAux
-  #   variable = elastic_strain12
-  #   rank_two_tensor = elastic_strain
-  #   index_i = 0
-  #   index_j = 1
-  #   execute_on = timestep_end
-  # [../]
+  [./elastic_strain11]
+    type = RankTwoAux
+    variable = elastic_strain11
+    rank_two_tensor = elastic_strain
+    index_i = 0
+    index_j = 0
+    execute_on = timestep_end
+  [../]
+  [./elastic_strain22]
+    type = RankTwoAux
+    variable = elastic_strain22
+    rank_two_tensor = elastic_strain
+    index_i = 1
+    index_j = 1
+    execute_on = timestep_end
+  [../]
+  [./elastic_strain12]
+    type = RankTwoAux
+    variable = elastic_strain12
+    rank_two_tensor = elastic_strain
+    index_i = 0
+    index_j = 1
+    execute_on = timestep_end
+  [../]
+  [./stress11]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress11
+    index_i = 0
+    index_j = 0
+  [../]
+  [./stress12]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress12
+    index_i = 0
+    index_j = 1
+  [../]
+  [./stress22]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress22
+    index_i = 1
+    index_j = 1
+  [../]
   # [./unique_grains]
   #   type = FeatureFloodCountAux
   #   variable = unique_grains
@@ -157,6 +190,12 @@
 []
 
 [BCs]
+  # [./top_displacement]
+  #   type = DirichletBC
+  #   variable = disp_y
+  #   boundary = top
+  #   value = -10.0
+  # [../]
   [./top_displacement]
     type = FunctionDirichletBC
     variable = disp_y
@@ -166,7 +205,6 @@
   [./x_anchor]
     type = DirichletBC
     variable = disp_x
-    # boundary = 'left right'
     boundary = 'left'
     value = 0.0
   [../]
@@ -178,7 +216,6 @@
   [../]
 []
 
-
 [Materials]
   [./Copper]
     type = GBEvolution
@@ -189,44 +226,28 @@
     Q = 0.23 #Migration energy in eV
     GBenergy = 0.708 #GB energy in J/m^2
     time_scale = 1.0e-6
+
   [../]
   [./ElasticityTensor]
-    type = ComputeElasticityTensorGrGrCP
-    C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.754e5 0.754e5 0.754e5'
-    fill_method = symmetric9
+    type = ComputePolycrystalElasticityTensor
     grain_tracker = grain_tracker
-
-    # outputs = exodus
   [../]
   [./strain]
-    type = ComputeFiniteStrain
+    type = ComputeSmallStrain
     block = 0
     displacements = 'disp_x disp_y'
-    # outputs = exodus
-    # 
   [../]
-  [./crysp]
-    type = GrGrFiniteStrainCrystalPlasticity
+  [./stress]
+    type = ComputeLinearElasticStress
     block = 0
-    gtol = 1e-2
-    slip_sys_file_name = input_slip_sys.txt
-    nss = 12
-    num_slip_sys_flowrate_props = 2 #Number of properties in a slip system
-    flowprops = '1 4 0.001 0.1 5 8 0.001 0.1 9 12 0.001 0.1'
-    hprops = '1.0 541.5 60.8 109.8 2.5'
-    gprops = '1 4 60.8 5 8 60.8 9 12 60.8'
-    tan_mod_type = exact
-    # outputs = exodus
   [../]
+  # [./elasticenergy] 
+  #   type = ComputerGrGrLine2ElasticEnergy
+  #   # args = 'gr0 gr1' 
+  #   grain_tracker = grain_tracker
+  #   # outputs = exodus 
+  # [../]
 
-
-
-  [./elasticenergy] 
-    type = ComputerGrGrCP2ElasticEnergy 
-    # args = 'gr0 gr1' 
-    grain_tracker = grain_tracker
-    # outputs = exodus 
-  [../]
 []
 
 [UserObjects]
@@ -235,7 +256,7 @@
     file_name = test.tex
   [../]
   [./grain_tracker]
-    type = GrainTrackerElasticityAdd
+    type = GrainTrackerElasticity
     connecting_threshold = 0.05
     compute_var_to_feature_map = true
     flood_entity_type = elemental
@@ -245,11 +266,21 @@
     fill_method = symmetric9
     C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
 
-    # outputs = none
+    outputs = none
   [../]
 []
 
 [Postprocessors]
+  [./elastic_strain22] 
+    type = ElementAverageValue
+    variable = elastic_strain22
+    block = 'ANY_BLOCK_ID 0'
+  [../]
+  [./stress22] 
+    type = ElementAverageValue
+    variable = stress22
+    block = 'ANY_BLOCK_ID 0'
+  [../]
   [./dt]
     type = TimestepSize
   [../]
@@ -293,12 +324,14 @@
 [Outputs]
   execute_on = 'timestep_end'
   exodus = true
+  csv = true
 []
 
 [Functions]
   [./tdisp]
     type = ParsedFunction
-    value = if(t<=6.45,-t,-6.45)
-    # value = -t
+    # value = if(t<=100.0,-10*t,10)
+    # value = if(t<=6.0,-t,-6.0)
+    value = t
   [../]
-[]  
+[]

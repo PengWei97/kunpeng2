@@ -25,15 +25,6 @@
   [../]
 []
 
-[Functions]
-  [./tdisp]
-    type = ParsedFunction
-    value = if(t<=100.0,-0.1*t,10)
-    # value = 0
-  [../]
-[]
-
-
 [ICs]
   [./PolycrystalICs]
     [./BicrystalBoundingBoxIC]
@@ -46,10 +37,10 @@
 []
 
 [AuxVariables]
-  # [./bnds]
-  #   order = FIRST
-  #   family = LAGRANGE
-  # [../]
+  [./bnds]
+    order = FIRST
+    family = LAGRANGE
+  [../]
   # [./elastic_strain11]
   #   order = CONSTANT
   #   family = MONOMIAL
@@ -96,11 +87,11 @@
 []
 
 [AuxKernels]
-  # [./bnds_aux]
-  #   type = BndsCalcAux
-  #   variable = bnds
-  #   execute_on = timestep_end
-  # [../]
+  [./bnds_aux]
+    type = BndsCalcAux
+    variable = bnds
+    execute_on = timestep_end
+  [../]
   # [./elastic_strain11]
   #   type = RankTwoAux
   #   variable = elastic_strain11
@@ -187,6 +178,7 @@
   [../]
 []
 
+
 [Materials]
   [./Copper]
     type = GBEvolution
@@ -235,7 +227,7 @@
   # [../]
 
   [./elasticenergy] 
-    type = GetMaterialParams 
+    type = ComputerGrGrCP2ElasticEnergy 
     # args = 'gr0 gr1' 
     grain_tracker = grain_tracker
     # outputs = exodus 
@@ -293,7 +285,15 @@
 
   start_time = 0.0
   num_steps = 100
-  dt = 0.2
+  dt = 0.1
+
+  # [./TimeStepper]
+  #   type = IterationAdaptiveDT
+  #   dt = 0.1
+  #   growth_factor = 1.2
+  #   cutback_factor = 0.8
+  #   optimal_iterations = 8
+  # [../]
 
   [./Adaptivity]
    initial_adaptivity = 2
@@ -307,3 +307,12 @@
   execute_on = 'timestep_end'
   exodus = true
 []
+
+
+[Functions]
+  [./tdisp]
+    type = ParsedFunction
+    value = if(t<=6.45,-t,-6.45)
+    # value = -t
+  [../]
+[]  

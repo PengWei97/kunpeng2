@@ -301,7 +301,7 @@
   nl_rel_tol = 1e-9
 
   start_time = 0.0
-  num_steps = 500
+  num_steps = 100
   dt = 0.2
 
   [./Adaptivity]

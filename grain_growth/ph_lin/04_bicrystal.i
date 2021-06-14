@@ -209,7 +209,7 @@
     block = 0
   [../]
   [./elasticenergy] 
-    type = GetMaterialParamsLine
+    type = ComputerGrGrLineElasticEnergy
     # args = 'gr0 gr1' 
     grain_tracker = grain_tracker
     outputs = exodus 
@@ -268,7 +268,7 @@
 
   start_time = 0.0
   num_steps = 30
-  dt = 0.2
+  dt = 0.1
 
   [./Adaptivity]
    initial_adaptivity = 2
@@ -281,4 +281,12 @@
 [Outputs]
   execute_on = 'timestep_end'
   exodus = true
+[]
+
+[Functions]
+  [./tdisp]
+    type = ParsedFunction
+    # value = if(t<=100.0,-10*t,10)
+    value = -10*t
+  [../]
 []

@@ -3,17 +3,17 @@
 #include "DerivativeFunctionMaterialBase.h"
 #include "ADRankTwoTensorForward.h"
 #include "ADRankFourTensorForward.h"
-#include "GrainDataTrackerAdd.h"
+#include "GrainDataTracker.h"
 
 /**
  * Material class to compute the elastic free energy and its derivatives
  */
-class ComputerGrGrCPElasticEnergy : public DerivativeFunctionMaterialBase
+class ComputerGrGrLineElasticEnergy : public DerivativeFunctionMaterialBase
 {
 public:
   static InputParameters validParams();
 
-  ComputerGrGrCPElasticEnergy(const InputParameters & parameters);
+  ComputerGrGrLineElasticEnergy(const InputParameters & parameters);
 
   virtual void initialSetup() override;
 
@@ -32,13 +32,14 @@ protected:
 
   std::string _D_h_name;
 
-  const MaterialProperty<RankTwoTensor> & _pk2_grgr;
-  const MaterialProperty<RankTwoTensor> & _lag_e_grgr;
+  const MaterialProperty<RankTwoTensor> & _elastic_strain;
+  const MaterialProperty<RankTwoTensor> & _stress;
+  // const MaterialProperty<RankTwoTensor> & _lag_e_grgr;
 
   Real _length_scale;
   Real _pressure_scale;
 
-  const GrainDataTrackerAdd<RankFourTensor,RealVectorValue> & _grain_tracker;
+  const GrainDataTracker<RankFourTensor> & _grain_tracker;
 
   /// Number of order parameters
   const unsigned int _op_num;

@@ -6,8 +6,8 @@
   dim = 2
   nx = 10
   ny = 3
-  xmax = 20
-  ymax = 20
+  xmax = 1000
+  ymax = 1000
   elem_type = QUAD4
   uniform_refine = 2
 []
@@ -31,8 +31,8 @@
     [./BicrystalBoundingBoxIC]
       x1 = 0
       y1 = 0
-      x2 = 10
-      y2 = 20
+      x2 = 500
+      y2 = 1000
     [../]
   [../]
 []
@@ -79,7 +79,7 @@
 [Kernels]
   [./PolycrystalKernel]
   [../]
-  [./PolycrystalElasticDrivingForce]
+  [./PolycrystalElasticEnergy]
   [../]
   [./TensorMechanics]
     displacements = 'disp_x disp_y'
@@ -156,14 +156,6 @@
   # [../]
 []
 
-[Functions]
-  [./tdisp]
-    type = ParsedFunction
-    # value = if(t<=19.0,-0.01*t,0.19)
-    value = 0.1
-  [../]
-[]
-
 [BCs]
   # [./top_displacement]
   #   type = DirichletBC
@@ -180,7 +172,7 @@
   [./x_anchor]
     type = DirichletBC
     variable = disp_x
-    boundary = 'left right'
+    boundary = 'left'
     value = 0.0
   [../]
   [./y_anchor]
@@ -196,13 +188,12 @@
     type = GBEvolution
     block = 0
     T = 500 # K
-    wGB = 4 # nm
-#     GBmob0 = 2.5e-6 #m^4/(Js) from Schoenfelder 1997
+    wGB = 75 # nm
+    GBmob0 = 2.5e-6 #m^4/(Js) from Schoenfelder 1997
     Q = 0.23 #Migration energy in eV
     GBenergy = 0.708 #GB energy in J/m^2
-    GBMobility = 1.0e-12
-    time_scale = 1.0e-9
-    length_scale = 1.0e-9
+    time_scale = 1.0e-6
+
   [../]
   [./ElasticityTensor]
     type = ComputePolycrystalElasticityTensor
@@ -218,7 +209,7 @@
     block = 0
   [../]
   [./elasticenergy] 
-    type = GetMaterialParamsLine
+    type = ComputerGrGrLine2ElasticEnergy
     # args = 'gr0 gr1' 
     grain_tracker = grain_tracker
     outputs = exodus 
@@ -240,7 +231,7 @@
 
     euler_angle_provider = euler_angle_file
     fill_method = symmetric9
-    C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.75e5 0.75e5 0.75e5'
+    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
 
     outputs = none
   [../]
@@ -276,9 +267,8 @@
   nl_rel_tol = 1e-9
 
   start_time = 0.0
-  end_time = 20
-  # num_steps = 300
-  dt = 0.2
+  num_steps = 30
+  dt = 0.1
 
   [./Adaptivity]
    initial_adaptivity = 2
@@ -291,4 +281,12 @@
 [Outputs]
   execute_on = 'timestep_end'
   exodus = true
+[]
+
+[Functions]
+  [./tdisp]
+    type = ParsedFunction
+    # value = if(t<=100.0,-10*t,10)
+    value = -10*t
+  [../]
 []

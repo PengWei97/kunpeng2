@@ -59,7 +59,8 @@ PolycrystalElasticEnergyAction::act()
         derivativePropertyNameFirst(_elasticity_energy_name, var_name);
 
     // Set name of kernel being created
-    std::string kernel_type = "ACGrGrElasticEnergy";
+    std::string kernel_type = "ACGrGrElasticEnergyLine"; // ph-lin
+    // std::string kernel_type = "ACGrGrElasticEnergy"; // ph-cp
 
     // Set the actual parameters for the kernel
     InputParameters poly_params = _factory.getValidParams(kernel_type);

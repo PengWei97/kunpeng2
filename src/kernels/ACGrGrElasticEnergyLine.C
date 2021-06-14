@@ -20,8 +20,8 @@ ACGrGrElasticEnergyLine::validParams()
 {
   InputParameters params = ACBulk<Real>::validParams();
   params.addClassDescription("Adds elastic energy contribution to the Allen-Cahn equation");
-  params.addRequiredParam<MaterialPropertyName>(
-      "D_tensor_name", "The elastic tensor derivative for the specific order parameter");
+  // params.addRequiredParam<MaterialPropertyName>(
+  //     "D_tensor_name", "The elastic tensor derivative for the specific order parameter");
   params.addRequiredParam<MaterialPropertyName>(
       "D_elastic_energy_name", "The elastic tensor derivative for the specific order parameter");
   return params;
@@ -30,10 +30,10 @@ ACGrGrElasticEnergyLine::validParams()
 ACGrGrElasticEnergyLine::ACGrGrElasticEnergyLine(const InputParameters & parameters)
   : ACBulk<Real>(parameters),
     // _D_elastic_tensor(getMaterialProperty<RankFourTensor>("D_tensor_name")),
-    _D_elastic_energy(getMaterialProperty<Real>("D_elastic_energy_name")),
+    _D_elastic_energy(getMaterialProperty<Real>("D_elastic_energy_name"))
     // _elastic_strain(getMaterialPropertyByName<RankTwoTensor>("elastic_strain")),
     // _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>("lage_grgr")),
-     _D_elastic_tensor(getMaterialProperty<RankFourTensor>("D_tensor_name"))
+    //  _D_elastic_tensor(getMaterialProperty<RankFourTensor>("D_tensor_name"))
 {
 }
 

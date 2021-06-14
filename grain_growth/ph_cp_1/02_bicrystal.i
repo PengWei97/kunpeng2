@@ -41,22 +41,32 @@
     order = FIRST
     family = LAGRANGE
   [../]
-  # [./elastic_strain11]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
-  # [./elastic_strain22]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
-  # [./elastic_strain12]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
-  # [./unique_grains]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
+  [./stress_yy]
+    order = CONSTANT
+    family = MONOMIAL
+    block = 0
+  [../]
+  [./e_yy]
+    order = CONSTANT
+    family = MONOMIAL
+    block = 0
+  [../] 
+  [./unique_grains]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress11]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress12]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress22]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
   # [./var_indices]
   #   order = CONSTANT
   #   family = MONOMIAL
@@ -92,37 +102,52 @@
     variable = bnds
     execute_on = timestep_end
   [../]
-  # [./elastic_strain11]
-  #   type = RankTwoAux
-  #   variable = elastic_strain11
-  #   rank_two_tensor = elastic_strain
-  #   index_i = 0
-  #   index_j = 0
-  #   execute_on = timestep_end
-  # [../]
-  # [./elastic_strain22]
-  #   type = RankTwoAux
-  #   variable = elastic_strain22
-  #   rank_two_tensor = elastic_strain
-  #   index_i = 1
-  #   index_j = 1
-  #   execute_on = timestep_end
-  # [../]
-  # [./elastic_strain12]
-  #   type = RankTwoAux
-  #   variable = elastic_strain12
-  #   rank_two_tensor = elastic_strain
-  #   index_i = 0
-  #   index_j = 1
-  #   execute_on = timestep_end
-  # [../]
-  # [./unique_grains]
-  #   type = FeatureFloodCountAux
-  #   variable = unique_grains
-  #   flood_counter = grain_tracker
-  #   execute_on = 'initial timestep_begin'
-  #   field_display = UNIQUE_REGION
-  # [../]
+  [./stress_yy]
+    type = RankTwoAux
+    variable = stress_yy
+    rank_two_tensor = stress
+    index_j = 1
+    index_i = 1
+    execute_on = 'initial timestep_end'
+    block = 0
+  [../]
+  [./e_yy]
+    type = RankTwoAux
+    variable = e_yy
+    rank_two_tensor = lage
+    index_j = 1
+    index_i = 1
+    execute_on = timestep_end
+    block = 0
+  [../]
+  [./unique_grains]
+    type = FeatureFloodCountAux
+    variable = unique_grains
+    flood_counter = grain_tracker
+    execute_on = 'initial timestep_begin'
+    field_display = UNIQUE_REGION
+  [../]
+  [./stress11]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress11
+    index_i = 0
+    index_j = 0
+  [../]
+  [./stress12]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress12
+    index_i = 0
+    index_j = 1
+  [../]
+  [./stress22]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress22
+    index_i = 1
+    index_j = 1
+  [../]
   # [./var_indices]
   #   type = FeatureFloodCountAux
   #   variable = var_indices
@@ -192,7 +217,7 @@
   [../]
   [./ElasticityTensor]
     type = ComputeElasticityTensorGrGrCP
-    C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.754e5 0.754e5 0.754e5'
+    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
     fill_method = symmetric9
     grain_tracker = grain_tracker
 
@@ -218,9 +243,6 @@
     tan_mod_type = exact
     # outputs = exodus
   [../]
-
-
-
   [./elasticenergy] 
     type = ComputerGrGrCP2ElasticEnergy 
     # args = 'gr0 gr1' 
@@ -250,6 +272,16 @@
 []
 
 [Postprocessors]
+  [./stress_yy]
+    type = ElementAverageValue
+    variable = stress_yy
+    block = 'ANY_BLOCK_ID 0'
+  [../]
+  [./e_yy]
+    type = ElementAverageValue
+    variable = e_yy
+    block = 'ANY_BLOCK_ID 0'
+  [../]
   [./dt]
     type = TimestepSize
   [../]
@@ -260,6 +292,7 @@
 []
 
 [Preconditioning]
+
   [./SMP]
    type = SMP
    coupled_groups = 'gr0,gr1 disp_x,disp_y'
@@ -293,12 +326,14 @@
 [Outputs]
   execute_on = 'timestep_end'
   exodus = true
+  csv = true
 []
 
 [Functions]
   [./tdisp]
     type = ParsedFunction
-    value = if(t<=6.45,-t,-6.45)
-    # value = -t
+    # value = if(t<=6.0,-t,-6.0)
+    # value = -2*t
+    value = t
   [../]
 []  

@@ -1,11 +1,11 @@
-#include "ComputerGrGrCPElasticEnergy.h"
+#include "ComputerGrGrCP2ElasticEnergy.h"
 #include "RankTwoTensor.h"
 #include "RankFourTensor.h"
 
-registerMooseObject("PhaseFieldApp", ComputerGrGrCPElasticEnergy);
+registerMooseObject("PhaseFieldApp", ComputerGrGrCP2ElasticEnergy);
 
 InputParameters
-ComputerGrGrCPElasticEnergy::validParams()
+ComputerGrGrCP2ElasticEnergy::validParams()
 {
   InputParameters params = DerivativeFunctionMaterialBase::validParams();
   params.addClassDescription("Free energy material for the elastic energy contributions.");
@@ -22,15 +22,18 @@ ComputerGrGrCPElasticEnergy::validParams()
   return params;
 }
 
-ComputerGrGrCPElasticEnergy::ComputerGrGrCPElasticEnergy(const InputParameters & parameters)
+ComputerGrGrCP2ElasticEnergy::ComputerGrGrCP2ElasticEnergy(const InputParameters & parameters)
   : DerivativeFunctionMaterialBase(parameters),
     _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
     _elasticity_energy_name(_base_name + "elasticity_energy"),
     _elastic_energy_name(_base_name + "elasticity_energy"),
+    _stiff_tensor_name(_base_name + "stiff_tensor"),
     _h_name(_base_name + "h"),
     _D_h_name(_base_name + "D_h"),
-    _pk2_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "pk2_grgr")),
-    _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "lage_grgr")),
+    _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>("lage_grgr")),
+    _stress(getMaterialPropertyByName<RankTwoTensor>("stress")),
+    // _pk2_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "pk2_grgr")),
+    // _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "lage_grgr")),
     // _piaolak2(declareProperty<RankTwoTensor>("piaolak2")),
     _length_scale(getParam<Real>("length_scale")),
     _pressure_scale(getParam<Real>("pressure_scale")),
@@ -38,10 +41,13 @@ ComputerGrGrCPElasticEnergy::ComputerGrGrCPElasticEnergy(const InputParameters &
     _op_num(coupledComponents("v")),
     _vals(coupledValues("v")),
     _elasticity_energy(declareProperty<Real>("elasticity_energy")),
+    // 初始化实数材料性质变量
     _elastic_energy(declareProperty<Real>("elastic_energy")),
+    _stiff_tensor(declareProperty<RankFourTensor>(_stiff_tensor_name)),
     _D_elastic_energy(_op_num),
     _h(_op_num),
     _D_h(_op_num),
+    _D_stiff_tensor(_op_num),
     _JtoeV(6.24150974e18)
 {
     // Loop over variables (ops)
@@ -50,6 +56,8 @@ ComputerGrGrCPElasticEnergy::ComputerGrGrCPElasticEnergy(const InputParameters &
     // declare elasticity tensor derivative properties
     _D_elastic_energy[op_index] = &declarePropertyDerivative<Real>(
         _elasticity_energy_name, getVar("v", op_index)->name());
+    _D_stiff_tensor[op_index] = &declarePropertyDerivative<RankFourTensor>(
+        _stiff_tensor_name, getVar("v", op_index)->name());
     _h[op_index] = &declarePropertyDerivative<Real>(
         _h_name, getVar("v", op_index)->name());
     _D_h[op_index] = &declarePropertyDerivative<Real>(
@@ -59,13 +67,13 @@ ComputerGrGrCPElasticEnergy::ComputerGrGrCPElasticEnergy(const InputParameters &
 }
 
 void
-ComputerGrGrCPElasticEnergy::initialSetup()
+ComputerGrGrCP2ElasticEnergy::initialSetup()
 {
-  validateCoupling<RankTwoTensor>(_base_name + "elastic_strain");
+  validateCoupling<RankTwoTensor>(_base_name + "lag_e_grgr");
 }
 
 Real
-ComputerGrGrCPElasticEnergy::computeF()
+ComputerGrGrCP2ElasticEnergy::computeF()
 {
     // Get list of active order parameters from grain tracker
   const auto & op_to_grains = _grain_tracker.getVarToFeatureVector(_current_elem->id());
@@ -73,6 +81,7 @@ ComputerGrGrCPElasticEnergy::computeF()
   // Calculate elasticity tensor
   _elasticity_energy[_qp] = 0;
   _elastic_energy[_qp] = 0;
+  _stiff_tensor[_qp].zero();
   // _piaola2[_qp].zero();
   Real sum_h = 0.0;
   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
@@ -85,17 +94,23 @@ ComputerGrGrCPElasticEnergy::computeF()
     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
 
     // Sum all elastic energy $ = $ 
-    _elasticity_energy[_qp] += (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]))*h;
+    _elasticity_energy[_qp] += (0.5 * _lag_e_grgr[_qp].doubleContraction(_stress[_qp]))*h;
+    _stiff_tensor[_qp] += _grain_tracker.getDataElasticity(grain_id) * h;
     sum_h += h;
   }
   const Real tol = 1.0e-10;
   sum_h = std::max(sum_h, tol);
   _elasticity_energy[_qp] /= sum_h; // phi^e
+  _stiff_tensor[_qp] /= sum_h;
 
 
   // Calculate elasticity tensor derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
   for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
-    (*_D_elastic_energy[op_index])[_qp] = 0;
+    {
+      (*_D_elastic_energy[op_index])[_qp] = 0;
+      (*_D_stiff_tensor[op_index])[_qp].zero();
+    }
+    
 
   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
   {
@@ -109,13 +124,22 @@ ComputerGrGrCPElasticEnergy::computeF()
     Real & EE_deriv = (*_D_elastic_energy[op_index])[_qp];
     Real & HH = (*_h[op_index])[_qp];
     Real & HH_deriv = (*_D_h[op_index])[_qp];
+    
 
-    _elastic_energy[_qp] = (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]));
-
-    EE_deriv = ((_elastic_energy[_qp] - _elasticity_energy[_qp])/sum_h) * dhdopi;
+    _elastic_energy[_qp] = (0.5 * _lag_e_grgr[_qp].doubleContraction(_stress[_qp]));
 
     HH = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
     HH_deriv = dhdopi;
+
+    RankFourTensor & C_deriv = (*_D_stiff_tensor[op_index])[_qp];
+
+    C_deriv = (_grain_tracker.getDataElasticity(grain_id) - _stiff_tensor[_qp]) * dhdopi / sum_h;
+
+    C_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
+
+    // EE_deriv = ((_elastic_energy[_qp] - _elasticity_energy[_qp])/sum_h) * dhdopi;
+
+    EE_deriv = 0.5 * (C_deriv * _lag_e_grgr[_qp]).doubleContraction((_lag_e_grgr[_qp]));
 
     // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
     // EE_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;

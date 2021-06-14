@@ -1,11 +1,11 @@
-#include "ComputerGrGrCPElasticEnergy.h"
+#include "ComputerGrGrLineElasticEnergy.h"
 #include "RankTwoTensor.h"
 #include "RankFourTensor.h"
 
-registerMooseObject("PhaseFieldApp", ComputerGrGrCPElasticEnergy);
+registerMooseObject("PhaseFieldApp", ComputerGrGrLineElasticEnergy);
 
 InputParameters
-ComputerGrGrCPElasticEnergy::validParams()
+ComputerGrGrLineElasticEnergy::validParams()
 {
   InputParameters params = DerivativeFunctionMaterialBase::validParams();
   params.addClassDescription("Free energy material for the elastic energy contributions.");
@@ -22,19 +22,21 @@ ComputerGrGrCPElasticEnergy::validParams()
   return params;
 }
 
-ComputerGrGrCPElasticEnergy::ComputerGrGrCPElasticEnergy(const InputParameters & parameters)
+ComputerGrGrLineElasticEnergy::ComputerGrGrLineElasticEnergy(const InputParameters & parameters)
   : DerivativeFunctionMaterialBase(parameters),
     _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
     _elasticity_energy_name(_base_name + "elasticity_energy"),
     _elastic_energy_name(_base_name + "elasticity_energy"),
     _h_name(_base_name + "h"),
     _D_h_name(_base_name + "D_h"),
-    _pk2_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "pk2_grgr")),
-    _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "lage_grgr")),
+    _elastic_strain(getMaterialPropertyByName<RankTwoTensor>("elastic_strain")),
+    _stress(getMaterialPropertyByName<RankTwoTensor>("stress")),
+    // _pk2_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "pk2_grgr")),
+    // _lag_e_grgr(getMaterialPropertyByName<RankTwoTensor>(_base_name + "lage_grgr")),
     // _piaolak2(declareProperty<RankTwoTensor>("piaolak2")),
     _length_scale(getParam<Real>("length_scale")),
     _pressure_scale(getParam<Real>("pressure_scale")),
-    _grain_tracker(getUserObject<GrainDataTrackerAdd<RankFourTensor,RealVectorValue>>("grain_tracker")),
+    _grain_tracker(getUserObject<GrainDataTracker<RankFourTensor>>("grain_tracker")),
     _op_num(coupledComponents("v")),
     _vals(coupledValues("v")),
     _elasticity_energy(declareProperty<Real>("elasticity_energy")),
@@ -59,13 +61,13 @@ ComputerGrGrCPElasticEnergy::ComputerGrGrCPElasticEnergy(const InputParameters &
 }
 
 void
-ComputerGrGrCPElasticEnergy::initialSetup()
+ComputerGrGrLineElasticEnergy::initialSetup()
 {
   validateCoupling<RankTwoTensor>(_base_name + "elastic_strain");
 }
 
 Real
-ComputerGrGrCPElasticEnergy::computeF()
+ComputerGrGrLineElasticEnergy::computeF()
 {
     // Get list of active order parameters from grain tracker
   const auto & op_to_grains = _grain_tracker.getVarToFeatureVector(_current_elem->id());
@@ -85,7 +87,7 @@ ComputerGrGrCPElasticEnergy::computeF()
     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
 
     // Sum all elastic energy $ = $ 
-    _elasticity_energy[_qp] += (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]))*h;
+    _elasticity_energy[_qp] += (0.5 * _elastic_strain[_qp].doubleContraction(_stress[_qp]))*h;
     sum_h += h;
   }
   const Real tol = 1.0e-10;
@@ -110,7 +112,7 @@ ComputerGrGrCPElasticEnergy::computeF()
     Real & HH = (*_h[op_index])[_qp];
     Real & HH_deriv = (*_D_h[op_index])[_qp];
 
-    _elastic_energy[_qp] = (0.5 * _pk2_grgr[_qp].doubleContraction(_lag_e_grgr[_qp]));
+    _elastic_energy[_qp] = (0.5 * _elastic_strain[_qp].doubleContraction(_stress[_qp]));
 
     EE_deriv = ((_elastic_energy[_qp] - _elasticity_energy[_qp])/sum_h) * dhdopi;
 

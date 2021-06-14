@@ -1,19 +1,22 @@
+# 03. 提升模拟尺度
+
 [Mesh]
   type = GeneratedMesh
   dim = 2
-  nx = 10
-  ny = 3
-  xmax = 1000
-  ymax = 1000
+  nx = 40
+  ny = 10
+  xmax = 20
+  ymax = 20
   elem_type = QUAD4
   uniform_refine = 2
   skip_partitioning=true
-
 []
 
 [GlobalParams]
   op_num = 2
   var_name_base = gr
+  length_scale = 1.0e-6
+  # time_scale = 1.0e-6
 []
 
 [Variables]
@@ -30,8 +33,8 @@
     [./BicrystalBoundingBoxIC]
       x1 = 0
       y1 = 0
-      x2 = 500
-      y2 = 1000
+      x2 = 10
+      y2 = 20
     [../]
   [../]
 []
@@ -41,22 +44,27 @@
     order = FIRST
     family = LAGRANGE
   [../]
-  # [./elastic_strain11]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
-  # [./elastic_strain22]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
-  # [./elastic_strain12]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
-  # [./unique_grains]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
+  [./lage22]
+    order = CONSTANT
+    family = MONOMIAL
+    block = 0
+  [../] 
+  [./unique_grains]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress11]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress12]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress22]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
   # [./var_indices]
   #   order = CONSTANT
   #   family = MONOMIAL
@@ -92,37 +100,43 @@
     variable = bnds
     execute_on = timestep_end
   [../]
-  # [./elastic_strain11]
-  #   type = RankTwoAux
-  #   variable = elastic_strain11
-  #   rank_two_tensor = elastic_strain
-  #   index_i = 0
-  #   index_j = 0
-  #   execute_on = timestep_end
-  # [../]
-  # [./elastic_strain22]
-  #   type = RankTwoAux
-  #   variable = elastic_strain22
-  #   rank_two_tensor = elastic_strain
-  #   index_i = 1
-  #   index_j = 1
-  #   execute_on = timestep_end
-  # [../]
-  # [./elastic_strain12]
-  #   type = RankTwoAux
-  #   variable = elastic_strain12
-  #   rank_two_tensor = elastic_strain
-  #   index_i = 0
-  #   index_j = 1
-  #   execute_on = timestep_end
-  # [../]
-  # [./unique_grains]
-  #   type = FeatureFloodCountAux
-  #   variable = unique_grains
-  #   flood_counter = grain_tracker
-  #   execute_on = 'initial timestep_begin'
-  #   field_display = UNIQUE_REGION
-  # [../]
+  [./lage22]
+    type = RankTwoAux
+    variable = lage22
+    rank_two_tensor = lage
+    index_j = 1
+    index_i = 1
+    execute_on = timestep_end
+    block = 0
+  [../]
+  [./unique_grains]
+    type = FeatureFloodCountAux
+    variable = unique_grains
+    flood_counter = grain_tracker
+    execute_on = 'initial timestep_begin'
+    field_display = UNIQUE_REGION
+  [../]
+  [./stress11]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress11
+    index_i = 0
+    index_j = 0
+  [../]
+  [./stress12]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress12
+    index_i = 0
+    index_j = 1
+  [../]
+  [./stress22]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress22
+    index_i = 1
+    index_j = 1
+  [../]
   # [./var_indices]
   #   type = FeatureFloodCountAux
   #   variable = var_indices
@@ -184,7 +198,7 @@
     type = GBEvolution
     block = 0
     T = 500 # K
-    wGB = 75 # nm
+    wGB = 1.0 # nm
     GBmob0 = 2.5e-6 #m^4/(Js) from Schoenfelder 1997
     Q = 0.23 #Migration energy in eV
     GBenergy = 0.708 #GB energy in J/m^2
@@ -192,7 +206,7 @@
   [../]
   [./ElasticityTensor]
     type = ComputeElasticityTensorGrGrCP
-    C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.754e5 0.754e5 0.754e5'
+    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
     fill_method = symmetric9
     grain_tracker = grain_tracker
 
@@ -208,7 +222,7 @@
   [./crysp]
     type = GrGrFiniteStrainCrystalPlasticity
     block = 0
-    gtol = 1e-2
+    gtol = 1e2
     slip_sys_file_name = input_slip_sys.txt
     nss = 12
     num_slip_sys_flowrate_props = 2 #Number of properties in a slip system
@@ -250,6 +264,16 @@
 []
 
 [Postprocessors]
+  [./stress22]
+    type = ElementAverageValue
+    variable = stress22
+    block = 'ANY_BLOCK_ID 0'
+  [../]
+  [./lage22]
+    type = ElementAverageValue
+    variable = lage22
+    block = 'ANY_BLOCK_ID 0'
+  [../]
   [./dt]
     type = TimestepSize
   [../]
@@ -260,6 +284,7 @@
 []
 
 [Preconditioning]
+
   [./SMP]
    type = SMP
    coupled_groups = 'gr0,gr1 disp_x,disp_y'
@@ -274,12 +299,14 @@
   petsc_options_value = 'hypre boomeramg 31 0.7'
 
   l_max_its = 30
-  l_tol = 1e-4
+  l_tol = 1e-2
+
   nl_max_its = 30
-  nl_rel_tol = 1e-9
+  nl_rel_tol = 1e-8
+  nl_abs_tol = 1e-109
 
   start_time = 0.0
-  num_steps = 100
+  num_steps = 80
   dt = 0.1
 
   [./Adaptivity]
@@ -293,12 +320,15 @@
 [Outputs]
   execute_on = 'timestep_end'
   exodus = true
+  csv = true
 []
 
 [Functions]
   [./tdisp]
     type = ParsedFunction
-    value = if(t<=6.45,-t,-6.45)
-    # value = -t
+    # value = if(t<=6.0,-t,-6.0)
+    # value = if(t<=0.1,0,0.1*t)
+    value = -0.01*t
+    # value = 0
   [../]
 []  
